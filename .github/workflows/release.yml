@@ -135,6 +135,13 @@ jobs:
           if [ -n "$LINUX_TAR" ]; then
             cp "$LINUX_TAR" dist/Boomerang-latest-Linux.tar.gz
             echo "✓ Created: Boomerang-latest-Linux.tar.gz" >> $GITHUB_STEP_SUMMARY
+            
+            # Copy GPG signature if present
+            LINUX_SIG="${LINUX_TAR}.asc"
+            if [ -f "$LINUX_SIG" ]; then
+              cp "$LINUX_SIG" dist/Boomerang-latest-Linux.tar.gz.asc
+              echo "✓ Created: Boomerang-latest-Linux.tar.gz.asc (GPG signature)" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
           
           # Copy macOS installer with "latest" name
@@ -152,6 +159,7 @@ jobs:
             echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-macOS.pkg"
             echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Windows.zip"
             echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Linux.tar.gz"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Linux.tar.gz.asc"
             echo "\`\`\`" 
           } >> $GITHUB_STEP_SUMMARY
           

@@ -82,6 +82,53 @@ I highly recommend checking GP out, and stay tuned here for functionality and fe
 
 > **NOTE**: updating this on Jan-15-2026 to say that the UI is now in its rightful form, of the original image of the hardware. I may improve/replace the image with a better one at some point, but it's there. I might crop the background out of the current picture. Suggestions? I also have an idea for a modern re-imagining of the UI as an option.
 
+# Installation & Security
+
+## Downloading Releases
+
+Official releases are available on the [GitHub Releases page](https://github.com/MC-Music-Workshop/boomerang-plugin/releases). All platforms are supported:
+- **macOS**: Download the `.pkg` installer or `.zip` archive
+- **Windows**: Download the `.zip` archive
+- **Linux**: Download the `.tar.gz` archive
+
+## Security & Code Signing
+
+### macOS
+All macOS releases are **code signed** and **notarized** by Apple. The installer and plugin binaries are signed with a Developer ID certificate, so they will install and run without Gatekeeper warnings.
+
+### Linux
+Linux releases are **GPG signed** for authenticity verification. Each `.tar.gz` archive includes a detached GPG signature file (`.asc`).
+
+#### Verifying Linux Releases
+
+To verify the authenticity and integrity of a Linux release:
+
+1. **Import the GPG public key** (first time only):
+   ```bash
+   # Download the public key from a keyserver
+   gpg --keyserver keys.openpgp.org --recv-keys <KEY_ID>
+   
+   # Or import directly if provided in the release notes
+   ```
+
+2. **Verify the signature**:
+   ```bash
+   gpg --verify Boomerang-<version>-Linux.tar.gz.asc Boomerang-<version>-Linux.tar.gz
+   ```
+
+3. **Expected output**:
+   ```
+   gpg: Signature made <date>
+   gpg: Good signature from "MC Music Workshop <email>"
+   ```
+
+If you see "Good signature", the archive is authentic and hasn't been tampered with. If the verification fails, **do not use the archive** and report the issue.
+
+> **Note**: You may see a warning about the key not being "trusted" - this is normal unless you've explicitly marked the key as trusted. The important part is seeing "Good signature".
+
+### Windows
+Windows releases are currently **unsigned**. SmartScreen may display a warning when running the installer. We're working on obtaining a code signing certificate for Windows releases.
+
 # Background
 
 Way back when, I had an original ***Boomerang+ Phrase Sampler***. Before looping was cool; chiefly inspired by Trey Anastasio's use of one.
