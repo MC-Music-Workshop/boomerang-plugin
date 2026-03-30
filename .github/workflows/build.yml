@@ -272,9 +272,41 @@ jobs:
           cd ../../..
           echo "Created Windows artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
 
+      # Import GPG key for signing (Linux only)
+      - name: Import GPG Key
+        id: import-gpg
+        if: runner.os == 'Linux'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          # Skip if no GPG key configured (legitimate case for unsigned builds)
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "::warning::No GPG key configured — Linux release will not be signed"
+            echo "can_sign=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Import the private key - fail if this doesn't work
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          
+          # Get the key ID for signing - fail if no secret key found
+          KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep sec | awk '{print $2}' | cut -d'/' -f2 | head -1)
+          if [ -z "$KEY_ID" ]; then
+            echo "::error::Failed to import GPG secret key. Ensure GPG_PRIVATE_KEY contains a secret key (not just public key)."
+            echo "Export with: gpg --export-secret-keys --armor <KEY_ID>"
+            exit 1
+          fi
+          
+          echo "KEY_ID=$KEY_ID" >> $GITHUB_OUTPUT
+          echo "can_sign=true" >> $GITHUB_OUTPUT
+          echo "✓ GPG key imported (Key ID: $KEY_ID)"
+
       # Package - Linux
       - name: Package Linux
         if: runner.os == 'Linux'
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           mkdir -p dist
@@ -282,7 +314,46 @@ jobs:
           cp ../../../README.md .
           tar -czvf ../../../dist/Boomerang-${VERSION}-Linux.tar.gz VST3 Standalone README.md
           cd ../../..
-          echo "Created Linux artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Sign the tarball if GPG key is available
+          if [ "${{ steps.import-gpg.outputs.can_sign }}" = "true" ]; then
+            echo "Signing Linux release..."
+            if [ -n "$GPG_PASSPHRASE" ]; then
+              echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback \
+                --armor --detach-sign --output "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" \
+                "dist/Boomerang-${VERSION}-Linux.tar.gz"
+            else
+              gpg --batch --yes --armor --detach-sign \
+                --output "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" \
+                "dist/Boomerang-${VERSION}-Linux.tar.gz"
+            fi
+            
+            # Verify the signature - fail if verification doesn't pass
+            echo "Verifying signature..."
+            gpg --verify "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" "dist/Boomerang-${VERSION}-Linux.tar.gz" 2>&1 | tee verify.log
+            if grep -q "Good signature" verify.log; then
+              echo "✓ Signature verified successfully"
+            else
+              echo "::error::Signature verification failed - see verify.log"
+              cat verify.log
+              exit 1
+            fi
+            
+            # Report signing status
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Linux Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "Created artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Release is **GPG signed** with detached signature (\`.asc\` file)" >> $GITHUB_STEP_SUMMARY
+            echo "Users can verify authenticity with: \`gpg --verify Boomerang-${VERSION}-Linux.tar.gz.asc\`" >> $GITHUB_STEP_SUMMARY
+          else
+            # No GPG key configured - create unsigned release
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Linux Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "Created artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Warning:** Release is **unsigned** — users cannot verify authenticity. Not suitable for release." >> $GITHUB_STEP_SUMMARY
+          fi
 
       # Upload artifacts
       - name: Upload Artifacts
