@@ -6,9 +6,12 @@ It allows you to capture loops of any length from any incoming audio stream, rep
 
 Boomerang is designed for performance-oriented use on drums, guitars, synths, and full mixes where timing, immediacy, and control matter more than grid-locked precision.
 
-
-
 ![theRang_large](https://github.com/mcascone/Boomerang-project/assets/8335079/24804087-7e4d-49fd-bff8-4ba93347222e)
+
+# Download
+
+Get the latest release here: https://github.com/MC-Music-Workshop/boomerang-plugin/releases
+
 
 # Background
 
