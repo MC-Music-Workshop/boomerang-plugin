@@ -52,11 +52,13 @@ The software runs the "a parameter has changed, go check it out" script on any c
 
 We work with the assumption of a physical device, that only one button will be pressed at a time.
 
-The other factor to consider is how the MIDI messages are sent and received. I use a [Paint Audio MIDI Captain, which is highly programmable](https://paintaudio.com/products/midi-captain-std-vesion-black), but has no way of knowing the state of the software device. As far as I know, there is no way for this pedal to _receive_ MIDI messages from the software. Other, more expensive pedals do have this capability. [I am including the configuration file for the pedal as a reference,](midi/page2.txt) but you may have to build your own depending on your hardware. I talk about the MIDI configuration later on this doc.
+The other factor to consider is how the MIDI messages are sent and received. ~I use a [Paint Audio MIDI Captain, which is highly programmable](https://paintaudio.com/products/midi-captain-std-vesion-black), but has no way of knowing the state of the software device. As far as I know, there is no way for this pedal to _receive_ MIDI messages from the software. Other, more expensive pedals do have this capability.~ I have built a custom firmware for the MIDI Captain that supports bi-directional MIDI and works perfectly with the Boomerang: [MIDI Captain MAX](https://github.com/MC-Music-Workshop/midi-captain-max). [
+
+I am including the [MIDI Captain OEM Super Mode configuration file for the pedal as a reference](midi/page2.txt), but you may have to build your own depending on your hardware. I talk about the MIDI configuration later in this doc.
 
 To that end, I have tried to make the plugin buttons and LEDs behave as they would on the physical device, without considering the MIDI aspect. On the other hand, you have to understand how the device will behave when configuring your MIDI controller.
 
-Another way of looking at it is that the physical switches all appear to be momentary switches, but some features act as if they are latching on/off, like the record and play buttons; others like the once and stack buttons act as momentary switches.
+Another way of looking at it is that the physical switches all appear to be momentary switches, but some features act as if they are latching on/off, like the record and play buttons; others, like the once and stack buttons, act as momentary switches.
 
 Regarding the LEDs in the plugin, they're a bit extraneous, since the controls have their own visual feedback. But I have included them for completeness to make the plugin look more like the original device.
 
@@ -64,7 +66,7 @@ Regarding the LEDs in the plugin, they're a bit extraneous, since the controls h
 
 This project is very much in flux and there are a lot of little bugs/features in motion. Check out [the Issues tab](https://github.com/mcascone/boomerang-plugin/issues) for where my head is at regarding bugs and features.
 
-You can also [view a list of Milestones](https://github.com/mcascone/boomerang-plugin/milestones) to get a broader sense of my future plans for this project.
+You can also [view the project Kanban board](https://github.com/orgs/MC-Music-Workshop/projects/2) to get a broader sense of my future plans for this project.
 
 # The Controls
 
