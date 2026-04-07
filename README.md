@@ -52,7 +52,9 @@ The software runs the "a parameter has changed, go check it out" script on any c
 
 We work with the assumption of a physical device, that only one button will be pressed at a time.
 
-The other factor to consider is how the MIDI messages are sent and received. ~I use a [Paint Audio MIDI Captain, which is highly programmable](https://paintaudio.com/products/midi-captain-std-vesion-black), but has no way of knowing the state of the software device. As far as I know, there is no way for this pedal to _receive_ MIDI messages from the software. Other, more expensive pedals do have this capability.~ I have built a custom firmware for the MIDI Captain that supports bi-directional MIDI and works perfectly with the Boomerang: [MIDI Captain MAX](https://github.com/MC-Music-Workshop/midi-captain-max). [
+The other factor to consider is how the MIDI messages are sent and received. I use a [Paint Audio MIDI Captain, which is highly programmable](https://paintaudio.com/products/midi-captain-std-vesion-black), but has no way of knowing the state of the software device. As far as I know, there is no way for this pedal to _receive_ MIDI messages from the software. Other, more expensive pedals do have this capability.
+
+**UPDATE**: I have built an alternative firmware for the MIDI Captain that supports bi-directional MIDI and works perfectly with the Boomerang: [MIDI Captain MAX](https://github.com/MC-Music-Workshop/midi-captain-max).
 
 I am including the [MIDI Captain OEM Super Mode configuration file for the pedal as a reference](midi/page2.txt), but you may have to build your own depending on your hardware. I talk about the MIDI configuration later in this doc.
 
