@@ -56,6 +56,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         "Once State",
         false));  // read-only state indicator
 
+    // Play state indicator - on when playing (for external PLAY/STOP widget)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::playState, 1),
+        "Play State",
+        false));  // read-only state indicator
+
     // Continuous parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID(ParameterIDs::volume, 1),

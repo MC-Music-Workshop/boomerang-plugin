@@ -220,7 +220,10 @@ void LooperEngine::onOnceButtonPressed()
         {
             // Once when playing in once mode restarts at the beginning of the loop
             stopPlayback();
-            startPlayback();        
+            startPlayback();
+            // onceMode is unchanged here, so re-assert onceState so the ONCE
+            // widget re-syncs after its toggle press (issue #66)
+            setOnceMode(OnceMode::On);
         }
     }
     else if (state == LooperState::Stopped || state == LooperState::Recording)
@@ -337,10 +340,14 @@ void LooperEngine::startPlayback()
             ? static_cast<float>(activeSlot.length.load() - 1)
             : 0.0f);
         currentState.store(LooperState::Playing);
-        
+
         // Notify host that play button is on
         if (parameterNotifyCallback)
+        {
             parameterNotifyCallback(ParameterIDs::play, 1.0f);
+            // Dedicated read-only output for PLAY/STOP widget (issue #66)
+            parameterNotifyCallback(ParameterIDs::playState, 1.0f);
+        }
     }
 }
 
@@ -350,10 +357,14 @@ void LooperEngine::stopPlayback()
     
     activeSlot.isPlaying.store(false);
     currentState.store(LooperState::Stopped);
-    
+
     // Notify host that play button is off
     if (parameterNotifyCallback)
+    {
         parameterNotifyCallback(ParameterIDs::play, 0.0f);
+        // Dedicated read-only output for PLAY/STOP widget (issue #66)
+        parameterNotifyCallback(ParameterIDs::playState, 0.0f);
+    }
 }
 
 void LooperEngine::startOverdubbing()
