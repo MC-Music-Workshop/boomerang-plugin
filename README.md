@@ -133,6 +133,30 @@ The THRU MUTE switch is also useful when the user wants to play a reverse solo l
 
 The OUTPUT LEVEL roller on the front panel of the Boomerang Phrase Sampler controls the playback volume but has no effect on the through signal. The output level can be adjusted at any time and is not stored in memory. The OUTPUT LEVEL roller is a high quality, sealed potentiometer and is very smooth in operation. The output level can be adjusted from zero to full output and is very useful for balancing the loop with the through signal. The OUTPUT LEVEL roller is also useful for setting the level of the loop signal when the THRU MUTE switch is turned off and only the loop signal is present.
 
+# Gig Performer Integration
+
+The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
+
+- **Input params** — `play`, `record`, `once`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
+- **State output params** (read-only) — `playState`, `onceState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
+
+## Buttons should be Momentary
+
+The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `record`, `stack`) as **Momentary**:
+
+- Each press sends one edge, which the plugin treats as one button press and toggles its own state.
+- The release edge is ignored, so a press can't double-fire. (For example, pressing PLAY/STOP during recording stops recording without then starting playback.)
+
+A latching/toggle widget will mis-fire, because every release also counts as a press.
+
+## Showing state without breaking the button
+
+A momentary button springs back, so it can't display the latched state itself — exactly like the hardware, where a separate LED shows the state next to the momentary footswitch.
+
+**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
+
+⚠️ **Do not "widget-link" a button to its state param.** A link is bidirectional: the engine's state push travels back through the link and writes the input param, which re-triggers the button logic — a feedback loop. Keep the button (input) and the display (output) as independent widgets.
+
 # MIDI Configuration
 
 As mentioned earlier, the plugin has MIDI capability. I have included the configuration file for the Paint Audio MIDI Captain as a reference, but you may have to build your own depending on your hardware.
