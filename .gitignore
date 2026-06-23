@@ -19,6 +19,7 @@ JuceLibraryCode/
 *.sln.docstates
 *.user
 *.aps
+.worktrees
 
 # macOS
 .DS_Store
