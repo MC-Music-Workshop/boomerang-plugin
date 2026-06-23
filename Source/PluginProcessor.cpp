@@ -173,7 +173,11 @@ void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, 
     }
     else if (parameterID == ParameterIDs::play)
     {
-        looperEngine->onPlayButtonPressed();
+        // Act on the press edge only (momentary widget). Acting on both edges
+        // double-fires: e.g. PLAY/STOP during record would stop recording on
+        // press, then start playback on release (issue #66).
+        if (buttonPressed)
+            looperEngine->onPlayButtonPressed();
     }
     else if (parameterID == ParameterIDs::once)
     {
