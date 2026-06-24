@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Find successful build for tag
         id: find
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // Determine the tag
