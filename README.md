@@ -10,8 +10,7 @@ Boomerang is designed for performance-oriented use on drums, guitars, synths, an
 
 # Download
 
-Get the latest release here: https://github.com/MC-Music-Workshop/boomerang-plugin/releases
-
+Get the latest release here: https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest
 
 # Background
 
