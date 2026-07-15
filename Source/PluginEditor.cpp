@@ -8,8 +8,8 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     : AudioProcessorEditor (&p), audioProcessor (p), progressBar(progressValue)
 {
     // Load background image from embedded binary data
-    backgroundImage = juce::ImageCache::getFromMemory(BinaryData::boomerang_jpg, 
-                                                      BinaryData::boomerang_jpgSize);
+    backgroundImage = juce::ImageCache::getFromMemory(BinaryData::turrama_jpg,
+                                                      BinaryData::turrama_jpgSize);
     
     // Set default size and make resizable with aspect ratio constraint
     // Aspect ratio depends on footer visibility: 700x240 (with footer) or 700x200 (without)

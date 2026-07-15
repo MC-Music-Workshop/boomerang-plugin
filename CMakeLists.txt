@@ -85,18 +85,21 @@ add_subdirectory(JUCE)
 
 juce_add_plugin(Boomerang
     COMPANY_NAME "MC Music Workshop"
-    BUNDLE_ID com.MCMusicWorkshop.Boomerang
+    BUNDLE_ID com.MCMusicWorkshop.Turrama
     MICROPHONE_PERMISSION_ENABLED TRUE
-    MICROPHONE_PERMISSION_TEXT "Boomerang+ needs microphone access to record loops."
+    MICROPHONE_PERMISSION_TEXT "Turrama needs microphone access to record loops."
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    # PLUGIN_MANUFACTURER_CODE + PLUGIN_CODE identify the plugin to hosts
+    # (VST3 class ID / AU subtype). Kept from the Boomerang+ era on purpose:
+    # changing them would orphan the plugin in existing DAW sessions.
     PLUGIN_MANUFACTURER_CODE MCMW
     PLUGIN_CODE BOOM
     FORMATS Standalone VST3 AU
-    PRODUCT_NAME "Boomerang+"
+    PRODUCT_NAME "Turrama"
     COPY_PLUGIN_AFTER_BUILD TRUE
 )
 
@@ -113,7 +116,7 @@ target_sources(Boomerang
 
 juce_add_binary_data(BoomerangBinaryData
     SOURCES
-        img/boomerang.jpg
+        img/turrama.jpg
 )
 
 target_include_directories(Boomerang PRIVATE "${GENERATED_DIR}")
@@ -188,7 +191,7 @@ if(PLUGINVAL)
     message(STATUS "Found pluginval: ${PLUGINVAL}")
     add_custom_target(validate
         COMMAND ${PLUGINVAL} --validate-in-process --verbose
-                ${CMAKE_BINARY_DIR}/Boomerang_artefacts/VST3/Boomerang.vst3
+                ${CMAKE_BINARY_DIR}/Boomerang_artefacts/VST3/Turrama.vst3
         DEPENDS Boomerang
         COMMENT "Validating plugin with pluginval"
     )

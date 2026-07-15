@@ -25,6 +25,6 @@ echo "Git hash: ${GIT_HASH}"
 echo "Artifacts location: build/Boomerang_artefacts/"
 echo ""
 echo "Verifying architectures:"
-lipo -info build/Boomerang_artefacts/Standalone/Boomerang+.app/Contents/MacOS/Boomerang+
-lipo -info build/Boomerang_artefacts/VST3/Boomerang+.vst3/Contents/MacOS/Boomerang+
-lipo -info build/Boomerang_artefacts/AU/Boomerang+.component/Contents/MacOS/Boomerang+
+lipo -info build/Boomerang_artefacts/Standalone/Turrama.app/Contents/MacOS/Turrama
+lipo -info build/Boomerang_artefacts/VST3/Turrama.vst3/Contents/MacOS/Turrama
+lipo -info build/Boomerang_artefacts/AU/Turrama.component/Contents/MacOS/Turrama

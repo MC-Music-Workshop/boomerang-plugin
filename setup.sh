@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Boomerang+ JUCE Plugin Setup Script
+# Turrama JUCE Plugin Setup Script
 # This script sets up the development environment for building the plugin
 
-echo "Setting up Boomerang+ JUCE Plugin Development Environment..."
+echo "Setting up Turrama JUCE Plugin Development Environment..."
 
 # Check if JUCE is already available
 if [ ! -d "JUCE" ]; then

@@ -31,13 +31,13 @@ jobs:
         include:
           - os: macos-latest
             cmake_flags: -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
-            artifact_name: boomerang-macos
+            artifact_name: turrama-macos
           - os: windows-latest
             cmake_flags: ""
-            artifact_name: boomerang-windows
+            artifact_name: turrama-windows
           - os: ubuntu-latest
             cmake_flags: ""
-            artifact_name: boomerang-linux
+            artifact_name: turrama-linux
 
     runs-on: ${{ matrix.os }}
 
@@ -231,7 +231,7 @@ jobs:
           # Create zip with all formats (artifacts are in BUILD_TYPE/ for multi-config builds)
           cd build/Boomerang_artefacts/${{ env.BUILD_TYPE }}
           cp ../../../README.md .
-          zip -r ../../../dist/Boomerang-${VERSION}-macOS.zip VST3 AU Standalone README.md
+          zip -r ../../../dist/Turrama-${VERSION}-macOS.zip VST3 AU Standalone README.md
           cd ../../..
           # Build the installer package
           BOOMERANG_VERSION="$VERSION" ./build-installer.sh
@@ -268,7 +268,7 @@ jobs:
           mkdir -p dist
           cd build/Boomerang_artefacts/Release
           cp ../../../README.md .
-          7z a ../../../dist/Boomerang-${VERSION}-Windows.zip VST3 Standalone README.md
+          7z a ../../../dist/Turrama-${VERSION}-Windows.zip VST3 Standalone README.md
           cd ../../..
           echo "Created Windows artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
 
@@ -312,7 +312,7 @@ jobs:
           mkdir -p dist
           cd build/Boomerang_artefacts/Release
           cp ../../../README.md .
-          tar -czvf ../../../dist/Boomerang-${VERSION}-Linux.tar.gz VST3 Standalone README.md
+          tar -czvf ../../../dist/Turrama-${VERSION}-Linux.tar.gz VST3 Standalone README.md
           cd ../../..
           
           # Sign the tarball if GPG key is available
@@ -320,17 +320,17 @@ jobs:
             echo "Signing Linux release..."
             if [ -n "$GPG_PASSPHRASE" ]; then
               echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback \
-                --armor --detach-sign --output "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" \
-                "dist/Boomerang-${VERSION}-Linux.tar.gz"
+                --armor --detach-sign --output "dist/Turrama-${VERSION}-Linux.tar.gz.asc" \
+                "dist/Turrama-${VERSION}-Linux.tar.gz"
             else
               gpg --batch --yes --armor --detach-sign \
-                --output "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" \
-                "dist/Boomerang-${VERSION}-Linux.tar.gz"
+                --output "dist/Turrama-${VERSION}-Linux.tar.gz.asc" \
+                "dist/Turrama-${VERSION}-Linux.tar.gz"
             fi
             
             # Verify the signature - fail if verification doesn't pass
             echo "Verifying signature..."
-            gpg --verify "dist/Boomerang-${VERSION}-Linux.tar.gz.asc" "dist/Boomerang-${VERSION}-Linux.tar.gz" 2>&1 | tee verify.log
+            gpg --verify "dist/Turrama-${VERSION}-Linux.tar.gz.asc" "dist/Turrama-${VERSION}-Linux.tar.gz" 2>&1 | tee verify.log
             if grep -q "Good signature" verify.log; then
               echo "✓ Signature verified successfully"
             else
@@ -345,7 +345,7 @@ jobs:
             echo "Created artifacts for \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ Release is **GPG signed** with detached signature (\`.asc\` file)" >> $GITHUB_STEP_SUMMARY
-            echo "Users can verify authenticity with: \`gpg --verify Boomerang-${VERSION}-Linux.tar.gz.asc\`" >> $GITHUB_STEP_SUMMARY
+            echo "Users can verify authenticity with: \`gpg --verify Turrama-${VERSION}-Linux.tar.gz.asc\`" >> $GITHUB_STEP_SUMMARY
           else
             # No GPG key configured - create unsigned release
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -374,16 +374,16 @@ jobs:
         include:
           - os: macos-latest
             pluginval_url: https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
-            artifact_name: boomerang-macos
-            archive_pattern: "Boomerang-*-macOS.zip"
+            artifact_name: turrama-macos
+            archive_pattern: "Turrama-*-macOS.zip"
           - os: windows-latest
             pluginval_url: https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
-            artifact_name: boomerang-windows
-            archive_pattern: "Boomerang-*-Windows.zip"
+            artifact_name: turrama-windows
+            archive_pattern: "Turrama-*-Windows.zip"
           - os: ubuntu-latest
             pluginval_url: https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
-            artifact_name: boomerang-linux
-            archive_pattern: "Boomerang-*-Linux.tar.gz"
+            artifact_name: turrama-linux
+            archive_pattern: "Turrama-*-Linux.tar.gz"
 
     runs-on: ${{ matrix.os }}
 
@@ -437,7 +437,7 @@ jobs:
       # Run pluginval against extracted VST3
       - name: Run pluginval
         run: |
-          VST3_PATH="extracted/VST3/Boomerang+.vst3"
+          VST3_PATH="extracted/VST3/Turrama.vst3"
           echo "Validating: $VST3_PATH"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             ./pluginval/pluginval.app/Contents/MacOS/pluginval --validate "$VST3_PATH" --strictness-level 5

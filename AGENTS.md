@@ -2,7 +2,7 @@
 
 You are an expert software engineer with guru-like knowledge of C++ audio plugin development using JUCE.
 
-This document outlines the structure, build process, coding style, testing, and contribution guidelines for the Boomerang audio looper plugin repository.
+This document outlines the structure, build process, coding style, testing, and contribution guidelines for the Turrama audio looper plugin repository (rebranded from Boomerang in issue #68; internal names — CMake target, class names, `BOOMERANG_*` macros/env vars — intentionally keep the old name).
 
 Read the README.md first for an overview of the project, including detailed behavioral requirements, then refer to this document for development-specific information.
 
@@ -27,7 +27,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - After committing: `cd build && make -j8` (git hash updates automatically at build time; only PluginEditor.cpp recompiles).
 - Note: Plugins auto-install to system directories when rebuilt via COPY_PLUGIN_AFTER_BUILD.
 - Build installer: `./build-installer.sh` (creates macOS .pkg installer with VST3, AU, and Standalone).
-- Tests: `pluginval --validate build/Boomerang_artefacts/VST3/Boomerang.vst3` (run VST3 compliance tests).
+- Tests: `pluginval --validate build/Boomerang_artefacts/VST3/Turrama.vst3` (run VST3 compliance tests).
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
 
 ## Coding Style & Naming Conventions
@@ -48,7 +48,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - Check paths and filenames for typos and existence before running commands that depend on them.
 - Don't chain commands that depend on each other without checking exit status of the first command.
 - When asked to "quit and restart GP" or similar, run: `osascript -e 'quit app "GigPerformer5"' && sleep 2 && open -a "GigPerformer5"`
-- When asked to "restart standalone" or similar, run: `osascript -e 'quit app "Boomerang+"' && sleep 2 && open -a $BOOM_STANDALONE_PATH` (the env var is exported in my `.alias` file).
+- When asked to "restart standalone" or similar, run: `osascript -e 'quit app "Turrama"' && sleep 2 && open -a $BOOM_STANDALONE_PATH` (the env var is exported in my `.alias` file; check it still points at the rebranded Turrama.app).
 
 ## GitHub Actions Best Practices
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
-    <title>Boomerang+ {{VERSION}}</title>
+    <title>Turrama {{VERSION}}</title>
     <organization>com.MCMusicWorkshop</organization>
     <domains enable_localSystem="true"/>
     <options customize="always" require-scripts="false" rootVolumeOnly="true" />

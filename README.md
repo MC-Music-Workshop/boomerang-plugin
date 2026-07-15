@@ -1,12 +1,14 @@
-# Boomerang
+# TURRAMA
 
-Boomerang is a live looping and time-based audio effect built for instant capture, stutter, overdub, and reverse playback.
+Turrama is a live looping and time-based audio effect built for instant capture, stutter, overdub, and reverse playback.
 
 It allows you to capture loops of any length from any incoming audio stream, replay them immediately, and manipulate them in real time without stopping audio or committing to edits. Loops can be played once, repeated, overdubbed, reversed, or used as momentary stutters.
 
-Boomerang is designed for performance-oriented use on drums, guitars, synths, and full mixes where timing, immediacy, and control matter more than grid-locked precision.
+Turrama is designed for performance-oriented use on drums, guitars, synths, and full mixes where timing, immediacy, and control matter more than grid-locked precision.
 
-![theRang_large](https://github.com/mcascone/Boomerang-project/assets/8335079/24804087-7e4d-49fd-bff8-4ba93347222e)
+![Turrama](img/turrama-logo.png)
+
+> **About the name**: *Turrama* (also recorded as *turruma*) is the word for a fighting boomerang in the Awabakal language of the traditional Aboriginal custodians of the Lake Macquarie and Hunter Valley region of New South Wales, Australia. This plugin was previously published as *Boomerang+*; it has been renamed, but existing DAW sessions will pick up Turrama automatically — the plugin identifier is unchanged.
 
 # Download
 
@@ -56,7 +58,7 @@ We work with the assumption of a physical device, that only one button will be p
 
 The other factor to consider is how the MIDI messages are sent and received. I use a [Paint Audio MIDI Captain, which is highly programmable](https://paintaudio.com/products/midi-captain-std-vesion-black), but has no way of knowing the state of the software device. As far as I know, there is no way for this pedal to _receive_ MIDI messages from the software. Other, more expensive pedals do have this capability.
 
-**UPDATE**: I have built an alternative firmware for the MIDI Captain that supports bi-directional MIDI and works perfectly with the Boomerang: [MIDI Captain MAX](https://github.com/MC-Music-Workshop/midi-captain-max).
+**UPDATE**: I have built an alternative firmware for the MIDI Captain that supports bi-directional MIDI and works perfectly with Turrama: [MIDI Captain MAX](https://github.com/MC-Music-Workshop/midi-captain-max).
 
 I am including the [MIDI Captain OEM Super Mode configuration file for the pedal as a reference](midi/page2.txt), but you may have to build your own depending on your hardware. I talk about the MIDI configuration later in this doc.
 

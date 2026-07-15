@@ -21,7 +21,7 @@ Use this template when creating release notes for new versions.
 #### macOS
 
 **Installer Package (Recommended):**
-1. Download `Boomerang-{VERSION}-macOS.pkg`
+1. Download `Turrama-{VERSION}-macOS.pkg`
 2. Double-click to install
 3. The installer is **code signed and notarized** by Apple - no security warnings!
 4. Plugins will be installed to:
@@ -30,24 +30,24 @@ Use this template when creating release notes for new versions.
    - Standalone: `/Applications/`
 
 **Manual Installation:**
-1. Download `Boomerang-{VERSION}-macOS.zip`
+1. Download `Turrama-{VERSION}-macOS.zip`
 2. Extract and copy plugins to the locations above
 
 #### Windows
 
-1. Download `Boomerang-{VERSION}-Windows.zip`
+1. Download `Turrama-{VERSION}-Windows.zip`
 2. Extract the archive
-3. Copy `Boomerang+.vst3` to your VST3 folder:
+3. Copy `Turrama.vst3` to your VST3 folder:
    - Default: `C:\Program Files\Common Files\VST3\`
-4. Copy `Boomerang+.exe` (Standalone) to any location
+4. Copy `Turrama.exe` (Standalone) to any location
 
 **Note:** Windows SmartScreen may show a warning (unsigned release). This is expected. We're working on code signing for Windows.
 
 #### Linux
 
 **Download and Verify:**
-1. Download `Boomerang-{VERSION}-Linux.tar.gz`
-2. Download `Boomerang-{VERSION}-Linux.tar.gz.asc` (GPG signature)
+1. Download `Turrama-{VERSION}-Linux.tar.gz`
+2. Download `Turrama-{VERSION}-Linux.tar.gz.asc` (GPG signature)
 
 **Verify Authenticity (Recommended):**
 ```bash
@@ -55,7 +55,7 @@ Use this template when creating release notes for new versions.
 gpg --keyserver keys.openpgp.org --recv-keys 241C529DF2E79E51
 
 # Verify the signature
-gpg --verify Boomerang-{VERSION}-Linux.tar.gz.asc Boomerang-{VERSION}-Linux.tar.gz
+gpg --verify Turrama-{VERSION}-Linux.tar.gz.asc Turrama-{VERSION}-Linux.tar.gz
 ```
 
 You should see: `gpg: Good signature from "MC Music Workshop"`
@@ -63,13 +63,13 @@ You should see: `gpg: Good signature from "MC Music Workshop"`
 **Install:**
 ```bash
 # Extract
-tar -xzf Boomerang-{VERSION}-Linux.tar.gz
+tar -xzf Turrama-{VERSION}-Linux.tar.gz
 
 # Copy VST3 plugin
-cp -r VST3/Boomerang+.vst3 ~/.vst3/
+cp -r VST3/Turrama.vst3 ~/.vst3/
 
 # Copy Standalone (optional)
-cp Standalone/Boomerang+ ~/bin/  # or any location in your PATH
+cp Standalone/Turrama ~/bin/  # or any location in your PATH
 ```
 
 ### Security & Code Signing
@@ -103,7 +103,7 @@ Found a bug or have a feature request?
 - **Documentation:** Check the [README](README.md) and [AGENTS](AGENTS.md) guides
 - **Discord:** Join our community [link if available]
 
-Thank you for using Boomerang! 🎵
+Thank you for using Turrama! 🎵
 
 ---
 
@@ -124,7 +124,7 @@ Thank you for using Boomerang! 🎵
 #### macOS
 
 **Installer Package (Recommended):**
-1. Download `Boomerang-2.0.0-beta-5-macOS.pkg`
+1. Download `Turrama-2.0.0-beta-5-macOS.pkg`
 2. Double-click to install
 3. The installer is **code signed and notarized** by Apple - no security warnings!
 4. Plugins will be installed to:
@@ -133,24 +133,24 @@ Thank you for using Boomerang! 🎵
    - Standalone: `/Applications/`
 
 **Manual Installation:**
-1. Download `Boomerang-2.0.0-beta-5-macOS.zip`
+1. Download `Turrama-2.0.0-beta-5-macOS.zip`
 2. Extract and copy plugins to the locations above
 
 #### Windows
 
-1. Download `Boomerang-2.0.0-beta-5-Windows.zip`
+1. Download `Turrama-2.0.0-beta-5-Windows.zip`
 2. Extract the archive
-3. Copy `Boomerang+.vst3` to your VST3 folder:
+3. Copy `Turrama.vst3` to your VST3 folder:
    - Default: `C:\Program Files\Common Files\VST3\`
-4. Copy `Boomerang+.exe` (Standalone) to any location
+4. Copy `Turrama.exe` (Standalone) to any location
 
 **Note:** Windows SmartScreen may show a warning (unsigned release). This is expected. We're working on code signing for Windows.
 
 #### Linux
 
 **Download and Verify:**
-1. Download `Boomerang-2.0.0-beta-5-Linux.tar.gz`
-2. Download `Boomerang-2.0.0-beta-5-Linux.tar.gz.asc` (GPG signature)
+1. Download `Turrama-2.0.0-beta-5-Linux.tar.gz`
+2. Download `Turrama-2.0.0-beta-5-Linux.tar.gz.asc` (GPG signature)
 
 **Verify Authenticity (Recommended):**
 ```bash
@@ -158,7 +158,7 @@ Thank you for using Boomerang! 🎵
 gpg --keyserver keys.openpgp.org --recv-keys XXXXXXXXXXXXXXXX
 
 # Verify the signature
-gpg --verify Boomerang-2.0.0-beta-5-Linux.tar.gz.asc Boomerang-2.0.0-beta-5-Linux.tar.gz
+gpg --verify Turrama-2.0.0-beta-5-Linux.tar.gz.asc Turrama-2.0.0-beta-5-Linux.tar.gz
 ```
 
 You should see: `gpg: Good signature from "MC Music Workshop <contact@example.com>"`
@@ -166,13 +166,13 @@ You should see: `gpg: Good signature from "MC Music Workshop <contact@example.co
 **Install:**
 ```bash
 # Extract
-tar -xzf Boomerang-2.0.0-beta-5-Linux.tar.gz
+tar -xzf Turrama-2.0.0-beta-5-Linux.tar.gz
 
 # Copy VST3 plugin
-cp -r VST3/Boomerang+.vst3 ~/.vst3/
+cp -r VST3/Turrama.vst3 ~/.vst3/
 
 # Copy Standalone (optional)
-cp Standalone/Boomerang+ ~/bin/  # or any location in your PATH
+cp Standalone/Turrama ~/bin/  # or any location in your PATH
 ```
 
 ### Security & Code Signing
@@ -205,4 +205,4 @@ Found a bug or have a feature request?
 - **Report an issue:** https://github.com/MC-Music-Workshop/boomerang-plugin/issues/new
 - **Documentation:** Check the [README](README.md) and [AGENTS](AGENTS.md) guides
 
-Thank you for using Boomerang! 🎵
+Thank you for using Turrama! 🎵

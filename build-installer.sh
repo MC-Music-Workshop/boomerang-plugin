@@ -1,5 +1,5 @@
 #!/bin/bash
-# Boomerang+ Installer Build Script
+# Turrama Installer Build Script
 # Creates a customizable macOS .pkg installer for all plugin formats
 # Supports optional code signing and notarization with Apple Developer certificates
 
@@ -64,13 +64,13 @@ else
     CAN_NOTARIZE=false
 fi
 
-IDENTIFIER="com.MCMusicWorkshop.Boomerang"
+IDENTIFIER="com.MCMusicWorkshop.Turrama"
 BUILD_DIR="build/Boomerang_artefacts"
 OUTPUT_DIR="build/installer"
 COMPONENT_PKGS="$OUTPUT_DIR/components"
 RESOURCES_DIR="$(dirname "$0")/installer-resources"
 
-echo "Building Boomerang+ Installer v${VERSION}"
+echo "Building Turrama Installer v${VERSION}"
 echo "============================================"
 
 # Ensure build exists
@@ -119,9 +119,9 @@ echo ""
 echo "Signing binaries..."
 echo "==================="
 
-sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}VST3/Boomerang+.vst3"
-sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}AU/Boomerang+.component"
-sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Boomerang+.app"
+sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}VST3/Turrama.vst3"
+sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}AU/Turrama.component"
+sign_bundle "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Turrama.app"
 
 # Clean and create directories
 echo "Setting up installer directories..."
@@ -132,7 +132,7 @@ mkdir -p "$COMPONENT_PKGS"
 echo "Building VST3 component..."
 VST3_ROOT="$OUTPUT_DIR/vst3-root"
 mkdir -p "$VST3_ROOT/Library/Audio/Plug-Ins/VST3"
-cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}VST3/Boomerang+.vst3" "$VST3_ROOT/Library/Audio/Plug-Ins/VST3/"
+cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}VST3/Turrama.vst3" "$VST3_ROOT/Library/Audio/Plug-Ins/VST3/"
 
 pkgbuild --root "$VST3_ROOT" \
          --identifier "${IDENTIFIER}.vst3" \
@@ -144,7 +144,7 @@ pkgbuild --root "$VST3_ROOT" \
 echo "Building AU component..."
 AU_ROOT="$OUTPUT_DIR/au-root"
 mkdir -p "$AU_ROOT/Library/Audio/Plug-Ins/Components"
-cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}AU/Boomerang+.component" "$AU_ROOT/Library/Audio/Plug-Ins/Components/"
+cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}AU/Turrama.component" "$AU_ROOT/Library/Audio/Plug-Ins/Components/"
 
 pkgbuild --root "$AU_ROOT" \
          --identifier "${IDENTIFIER}.au" \
@@ -156,9 +156,9 @@ pkgbuild --root "$AU_ROOT" \
 echo "Building Standalone component..."
 STANDALONE_ROOT="$OUTPUT_DIR/standalone-root"
 mkdir -p "$STANDALONE_ROOT/Applications"
-cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Boomerang+.app" "$STANDALONE_ROOT/Applications/"
-cp uninstall.sh "$STANDALONE_ROOT/Applications/Uninstall Boomerang+.command"
-chmod +x "$STANDALONE_ROOT/Applications/Uninstall Boomerang+.command"
+cp -R "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Turrama.app" "$STANDALONE_ROOT/Applications/"
+cp uninstall.sh "$STANDALONE_ROOT/Applications/Uninstall Turrama.command"
+chmod +x "$STANDALONE_ROOT/Applications/Uninstall Turrama.command"
 
 # Create component plist to prevent bundle relocation
 cp "$RESOURCES_DIR/component.plist" "$OUTPUT_DIR/component.plist"
@@ -185,17 +185,17 @@ echo "Building product installer..."
 productbuild --distribution "$OUTPUT_DIR/distribution.xml" \
              --package-path "$COMPONENT_PKGS" \
              --resources "$OUTPUT_DIR" \
-             "$OUTPUT_DIR/Boomerang-${VERSION}-unsigned.pkg"
+             "$OUTPUT_DIR/Turrama-${VERSION}-unsigned.pkg"
 
 # Sign the package
-FINAL_PKG="$OUTPUT_DIR/Boomerang-${VERSION}.pkg"
+FINAL_PKG="$OUTPUT_DIR/Turrama-${VERSION}.pkg"
 if [ "$CAN_SIGN_PKG" = true ]; then
     echo ""
     echo "Signing installer package..."
     productsign --sign "$DEV_INSTALLER_IDENTITY" \
-        "$OUTPUT_DIR/Boomerang-${VERSION}-unsigned.pkg" \
+        "$OUTPUT_DIR/Turrama-${VERSION}-unsigned.pkg" \
         "$FINAL_PKG"
-    rm "$OUTPUT_DIR/Boomerang-${VERSION}-unsigned.pkg"
+    rm "$OUTPUT_DIR/Turrama-${VERSION}-unsigned.pkg"
     
     # Verify package signature
     if pkgutil --check-signature "$FINAL_PKG" | grep -q "Developer ID Installer"; then
@@ -205,7 +205,7 @@ if [ "$CAN_SIGN_PKG" = true ]; then
         exit 1
     fi
 else
-    mv "$OUTPUT_DIR/Boomerang-${VERSION}-unsigned.pkg" "$FINAL_PKG"
+    mv "$OUTPUT_DIR/Turrama-${VERSION}-unsigned.pkg" "$FINAL_PKG"
     echo "⚠ Package not signed (no Developer ID Installer certificate)"
 fi
 

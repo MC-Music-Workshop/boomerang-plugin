@@ -90,24 +90,24 @@ jobs:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v6
         with:
-          name: boomerang-macos
-          path: artifacts/boomerang-macos
+          name: turrama-macos
+          path: artifacts/turrama-macos
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.find-build.outputs.run_id }}
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v6
         with:
-          name: boomerang-windows
-          path: artifacts/boomerang-windows
+          name: turrama-windows
+          path: artifacts/turrama-windows
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.find-build.outputs.run_id }}
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v6
         with:
-          name: boomerang-linux
-          path: artifacts/boomerang-linux
+          name: turrama-linux
+          path: artifacts/turrama-linux
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.find-build.outputs.run_id }}
 
@@ -119,47 +119,47 @@ jobs:
           mkdir -p dist
           
           # Find and copy each platform's zip/tarball with "latest" name for stable Gumroad URL
-          MACOS_ZIP=$(find artifacts/boomerang-macos -name "*.zip" | head -1)
+          MACOS_ZIP=$(find artifacts/turrama-macos -name "*.zip" | head -1)
           if [ -n "$MACOS_ZIP" ]; then
-            cp "$MACOS_ZIP" dist/Boomerang-latest-macOS.zip
-            echo "✓ Created: Boomerang-latest-macOS.zip" >> $GITHUB_STEP_SUMMARY
+            cp "$MACOS_ZIP" dist/Turrama-latest-macOS.zip
+            echo "✓ Created: Turrama-latest-macOS.zip" >> $GITHUB_STEP_SUMMARY
           fi
           
-          WINDOWS_ZIP=$(find artifacts/boomerang-windows -name "*.zip" | head -1)
+          WINDOWS_ZIP=$(find artifacts/turrama-windows -name "*.zip" | head -1)
           if [ -n "$WINDOWS_ZIP" ]; then
-            cp "$WINDOWS_ZIP" dist/Boomerang-latest-Windows.zip
-            echo "✓ Created: Boomerang-latest-Windows.zip" >> $GITHUB_STEP_SUMMARY
+            cp "$WINDOWS_ZIP" dist/Turrama-latest-Windows.zip
+            echo "✓ Created: Turrama-latest-Windows.zip" >> $GITHUB_STEP_SUMMARY
           fi
           
-          LINUX_TAR=$(find artifacts/boomerang-linux -name "*.tar.gz" | head -1)
+          LINUX_TAR=$(find artifacts/turrama-linux -name "*.tar.gz" | head -1)
           if [ -n "$LINUX_TAR" ]; then
-            cp "$LINUX_TAR" dist/Boomerang-latest-Linux.tar.gz
-            echo "✓ Created: Boomerang-latest-Linux.tar.gz" >> $GITHUB_STEP_SUMMARY
+            cp "$LINUX_TAR" dist/Turrama-latest-Linux.tar.gz
+            echo "✓ Created: Turrama-latest-Linux.tar.gz" >> $GITHUB_STEP_SUMMARY
             
             # Copy GPG signature if present
             LINUX_SIG="${LINUX_TAR}.asc"
             if [ -f "$LINUX_SIG" ]; then
-              cp "$LINUX_SIG" dist/Boomerang-latest-Linux.tar.gz.asc
-              echo "✓ Created: Boomerang-latest-Linux.tar.gz.asc (GPG signature)" >> $GITHUB_STEP_SUMMARY
+              cp "$LINUX_SIG" dist/Turrama-latest-Linux.tar.gz.asc
+              echo "✓ Created: Turrama-latest-Linux.tar.gz.asc (GPG signature)" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           # Copy macOS installer with "latest" name
-          MACOS_PKG=$(find artifacts/boomerang-macos -name "*.pkg" | head -1)
+          MACOS_PKG=$(find artifacts/turrama-macos -name "*.pkg" | head -1)
           if [ -n "$MACOS_PKG" ]; then
-            cp "$MACOS_PKG" dist/Boomerang-latest-macOS.pkg
-            echo "✓ Created: Boomerang-latest-macOS.pkg" >> $GITHUB_STEP_SUMMARY
+            cp "$MACOS_PKG" dist/Turrama-latest-macOS.pkg
+            echo "✓ Created: Turrama-latest-macOS.pkg" >> $GITHUB_STEP_SUMMARY
           fi
           
           {
             echo ""
             echo "**Stable Gumroad URLs:**"
             echo "\`\`\`"
-            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-macOS.zip"
-            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-macOS.pkg"
-            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Windows.zip"
-            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Linux.tar.gz"
-            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Boomerang-latest-Linux.tar.gz.asc"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Turrama-latest-macOS.zip"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Turrama-latest-macOS.pkg"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Turrama-latest-Windows.zip"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Turrama-latest-Linux.tar.gz"
+            echo "https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest/download/Turrama-latest-Linux.tar.gz.asc"
             echo "\`\`\`" 
           } >> $GITHUB_STEP_SUMMARY
           
@@ -172,9 +172,9 @@ jobs:
           tag_name: ${{ needs.find-build.outputs.tag }}
           make_latest: true
           files: |
-            artifacts/boomerang-macos/*
-            artifacts/boomerang-windows/*
-            artifacts/boomerang-linux/*
+            artifacts/turrama-macos/*
+            artifacts/turrama-windows/*
+            artifacts/turrama-linux/*
             dist/*
           generate_release_notes: true
         env:
