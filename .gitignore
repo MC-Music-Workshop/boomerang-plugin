@@ -58,3 +58,6 @@ _codeql_detected_source_root
 # Archived legacy code
 Logs/
 .session-log.md
+
+# Playwright MCP session artifacts
+.playwright-mcp/
