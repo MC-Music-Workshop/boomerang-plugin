@@ -57,18 +57,18 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 
 ## CI/CD & Release Process
 
-The repository uses GitHub Actions for CI/CD (`.github/workflows/build.yml`):
+The repository uses GitHub Actions for CI/CD:
 
-1. **Build job** (runs on push/PR): Builds for macOS (universal), Windows, and Linux in parallel. Uploads packaged artifacts (zip/tarball).
-2. **Validate job** (runs after build): Downloads build artifacts, extracts VST3, runs `pluginval` for compliance testing. Does NOT rebuild.
-3. **Release job** (runs on `v*` tags only): Downloads all artifacts, creates a draft GitHub Release with attached binaries.
+1. **Build workflow** (`.github/workflows/build.yml`, runs on branch pushes, `v*` tag pushes, and PRs): Builds macOS (universal), Windows, and Linux in parallel. macOS bundles are signed + notarized via `build-installer.sh` BEFORE the zip is packed (the standalone app also gets the notarization ticket stapled). A validate job runs `pluginval` on the artifacts; it does NOT rebuild.
+2. **Release workflow** (`.github/workflows/release.yml`, runs on `v*` tag push): waits for the tag-triggered Build run of that commit (`gh run watch`), downloads its artifacts, and creates a GitHub Release with `Turrama-latest-*` asset aliases for stable Gumroad URLs. A manual `workflow_dispatch` with a tag input re-releases an existing tag.
 
 To create a release:
-1. Update version in `CMakeLists.txt` (`VERSION` and `BOOMERANG_VERSION_SUFFIX`).
-2. Commit and push to main.
-3. Tag the commit: `git tag v2.0.0-beta-2 && git push --tags`
-4. CI builds, validates, and creates a draft release at https://github.com/mcascone/boomerang-plugin/releases
-5. Edit the draft release notes, then publish.
+1. Tag the commit and push the tag: `git tag v3.0.0-alpha.2 && git push origin v3.0.0-alpha.2`
+   - No need to wait for the branch build first: the tag push triggers its own Build whose checkout contains the tag, so `git describe` versions the artifact names AND the in-plugin version string with the tag (a branch-push build can only ever produce `<prev-tag>+N.gHASH`).
+2. The Release workflow waits for that build, then publishes the release at https://github.com/mcascone/boomerang-plugin/releases with auto-generated notes.
+3. Edit the release notes as needed.
+
+Version strings come from `git describe --tags` at CMake configure time (`CMakeLists.txt`); only the git hash refreshes at build time. A local incremental `make` after tagging will NOT update the version — re-run `./build.sh` (re-configure) to pick up a new tag locally.
 
 Local testing with `act` (requires Docker):
 - `act -l` — list available jobs

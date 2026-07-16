@@ -3,6 +3,12 @@ name: Build
 on:
   push:
     branches: ['**']
+    # Tag pushes get their own build: the checkout then contains the tag, so
+    # git describe versions the artifacts AND the in-plugin version string
+    # correctly (branch-push builds run before the tag exists and can only
+    # produce <prev-tag>+N.gHASH). The Release workflow waits for this run.
+    # Note: paths-ignore is not evaluated for tag pushes.
+    tags: ['v*']
     paths-ignore:
       - '*.md'
       - '.github/**'

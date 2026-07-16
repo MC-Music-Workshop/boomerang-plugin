@@ -1,7 +1,7 @@
 name: Release
 
 on:
-  # Trigger on tag push - will find existing build for that commit
+  # Trigger on tag push - waits for the tag-triggered build of that commit
   push:
     tags: ['v*']
   # Manual trigger for re-releasing or releasing a specific tag
@@ -13,67 +13,57 @@ on:
         type: string
 
 jobs:
-  # Find the existing successful build for this tag's commit
+  # Find the build for this tag's commit and wait for it to complete.
+  # Tag pushes trigger their own Build run (which sees the tag, so artifacts
+  # and the in-plugin version string carry the tag's version) - prefer that
+  # run and block until it finishes.
   find-build:
     name: Find Build
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     outputs:
       run_id: ${{ steps.find.outputs.run_id }}
       tag: ${{ steps.find.outputs.tag }}
     steps:
-      - name: Find successful build for tag
+      - name: Wait for build of tagged commit
         id: find
-        uses: actions/github-script@v9
-        with:
-          script: |
-            // Determine the tag
-            let tag;
-            if (context.eventName === 'workflow_dispatch') {
-              tag = '${{ github.event.inputs.tag }}';
-            } else {
-              tag = context.ref.replace('refs/tags/', '');
-            }
-            console.log(`Looking for build for tag: ${tag}`);
-            
-            // Get the commit SHA for this tag
-            const ref = await github.rest.git.getRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `tags/${tag}`
-            });
-            let commitSha = ref.data.object.sha;
-            console.log(`Tag points to: ${commitSha}`);
-            
-            // If annotated tag, get the underlying commit
-            if (ref.data.object.type === 'tag') {
-              const tagObj = await github.rest.git.getTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag_sha: commitSha
-              });
-              commitSha = tagObj.data.object.sha;
-              console.log(`Annotated tag points to commit: ${commitSha}`);
-            }
-            
-            // Find successful build for this commit
-            const runs = await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'build.yml',
-              head_sha: commitSha,
-              status: 'success',
-              per_page: 1
-            });
-            
-            if (runs.data.workflow_runs.length === 0) {
-              core.setFailed(`No successful build found for commit ${commitSha}. Push to main first and wait for build to complete before tagging.`);
-              return;
-            }
-            
-            const runId = runs.data.workflow_runs[0].id;
-            console.log(`Found successful build run: ${runId}`);
-            core.setOutput('run_id', runId);
-            core.setOutput('tag', tag);
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Determine the tag
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "Releasing tag: $TAG"
+
+          # Resolve the tag to its commit (peels annotated tags)
+          SHA=$(gh api "/repos/${GH_REPO}/commits/${TAG}" --jq '.sha')
+          echo "Tag $TAG points to commit: $SHA"
+
+          # Give the tag-triggered build a moment to register
+          sleep 10
+
+          # Prefer the run triggered by this tag push (its head_branch is the
+          # tag name); fall back to the most recent run for the commit
+          # (covers workflow_dispatch re-releases of an already-built tag).
+          RUN_ID=$(gh api "/repos/${GH_REPO}/actions/workflows/build.yml/runs?head_sha=${SHA}&per_page=20" \
+            --jq "[.workflow_runs[] | select(.head_branch == \"${TAG}\")][0].id // .workflow_runs[0].id // empty")
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No build run found for commit ${SHA}. Is the commit pushed?"
+            exit 1
+          fi
+
+          # Block until the run completes; exits non-zero if it fails
+          echo "Waiting for build run $RUN_ID..."
+          gh run watch "$RUN_ID" --exit-status
+
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Build run [$RUN_ID](https://github.com/${GH_REPO}/actions/runs/${RUN_ID}) completed successfully" >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Create Release
