@@ -228,14 +228,17 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           mkdir -p dist
+          # Build the installer package FIRST: build-installer.sh signs the bundles
+          # in build/Boomerang_artefacts in place (and staples the notarized app),
+          # so the zip below ships signed binaries. Zipping before this shipped
+          # unsigned, Gatekeeper-blocked bundles (see v3.0.0-alpha.1).
+          BOOMERANG_VERSION="$VERSION" ./build-installer.sh
+          cp build/installer/*.pkg dist/ 2>/dev/null || true
           # Create zip with all formats (artifacts are in BUILD_TYPE/ for multi-config builds)
           cd build/Boomerang_artefacts/${{ env.BUILD_TYPE }}
           cp ../../../README.md .
           zip -r ../../../dist/Turrama-${VERSION}-macOS.zip VST3 AU Standalone README.md
           cd ../../..
-          # Build the installer package
-          BOOMERANG_VERSION="$VERSION" ./build-installer.sh
-          cp build/installer/*.pkg dist/ 2>/dev/null || true
           
           # Report actual signing status
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -230,6 +230,17 @@ if [ "$CAN_SIGN_PKG" = true ] && [ "$CAN_NOTARIZE" = true ]; then
         else
             echo "  ✗ Failed to staple ticket"
         fi
+
+        # Also staple the standalone app in the build dir: the release zip is
+        # created from these artifacts, and a zipped app can't inherit the
+        # pkg's staple. The pkg submission covers the app's cdhash, so a
+        # ticket exists for it. (VST3/AU bundles can't be stapled — hosts
+        # rely on Gatekeeper's online check for those.)
+        if xcrun stapler staple "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Turrama.app"; then
+            echo "  ✓ Standalone app stapled"
+        else
+            echo "  ⚠ Could not staple standalone app — zipped app will need internet for Gatekeeper"
+        fi
     else
         echo "  ✗ Notarization failed"
         echo "Check logs with: xcrun notarytool log <submission-id> --apple-id $APPLE_ID --team-id $APPLE_TEAM_ID"
