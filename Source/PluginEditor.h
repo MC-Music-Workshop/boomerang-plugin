@@ -4,6 +4,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_graphics/juce_graphics.h>
 #include "PluginProcessor.h"
+#include "Skin.h"
 
 //==============================================================================
 /**
@@ -49,8 +50,9 @@ private:
     juce::ProgressBar progressBar;
     double progressValue = 0.0;
     
-    // Background image
-    juce::Image backgroundImage;
+    // Active skin (background image + control layout + palette)
+    const Skin* skin      = nullptr;
+    int         skinIndex = 0;
     
     // LED states
     bool recordLED  = false;
@@ -93,6 +95,7 @@ private:
     bool prevReverseDown   = false;
 
     void setupButton(juce::TextButton& button, const juce::String& text, juce::Colour colour, bool isToggle = false);
+    void setSkin(int index);
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
     void showSettingsMenu();

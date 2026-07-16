@@ -112,6 +112,7 @@ target_sources(Boomerang
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
         Source/LooperEngine.cpp
+        Source/Skins.cpp
 )
 
 juce_add_binary_data(BoomerangBinaryData

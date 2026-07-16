@@ -1,16 +1,14 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "BinaryData.h"
 #include "git_version.h"  // Generated at build time with current git hash
 
 //==============================================================================
 BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p), progressBar(progressValue)
 {
-    // Load background image from embedded binary data
-    backgroundImage = juce::ImageCache::getFromMemory(BinaryData::turrama_jpg,
-                                                      BinaryData::turrama_jpgSize);
-    
+    // Select the default skin (background image + control layout + palette)
+    setSkin(skinIndex);
+
     // Set default size and make resizable with aspect ratio constraint
     // Aspect ratio depends on footer visibility: 700x240 (with footer) or 700x200 (without)
     setResizable(true, true);
@@ -159,19 +157,19 @@ void BoomerangAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 
 void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // Draw background image scaled to window size
-    if (backgroundImage.isValid())
+    // Draw the skin's background image scaled to window size
+    if (skin->background.isValid())
     {
         // When footer is hidden, image fills entire window
         // When footer is shown, image fills top portion (200/240 of height)
-        int destHeight = showFooterBar 
+        int destHeight = showFooterBar
             ? static_cast<int>(getHeight() * (200.0 / 240.0))
             : getHeight();
-        
+
         // drawImage(image, destX, destY, destW, destH, srcX, srcY, srcW, srcH)
-        g.drawImage(backgroundImage, 
+        g.drawImage(skin->background,
                    0, 0, getWidth(), destHeight,
-                   0, 0, backgroundImage.getWidth(), backgroundImage.getHeight(),
+                   0, 0, skin->background.getWidth(), skin->background.getHeight(),
                    false);
     }
     else
@@ -184,10 +182,18 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     
     // Draw inset shadow effect when buttons are pressed (always active)
     // This creates a "pushed in" look by drawing shadows at top/left edges
-    auto drawPressedInsetShadow = [&](juce::TextButton& button) {
+    auto drawPressedInsetShadow = [&](juce::TextButton& button, bool round) {
         if (button.isDown())
         {
             auto bounds = button.getBounds();
+
+            // Circular footswitch (drawn skins): simple darkening reads as "pressed"
+            if (round)
+            {
+                g.setColour(juce::Colours::black.withAlpha(0.35f));
+                g.fillEllipse(bounds.toFloat());
+                return;
+            }
             float shadowDepth = 4.0f;  // How "deep" the button appears pressed
             
             // Dark shadow on top edge (light coming from above)
@@ -224,12 +230,12 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     };
     
     // Apply inset shadow to all buttons when pressed
-    drawPressedInsetShadow(thruMuteButton);
-    drawPressedInsetShadow(recordButton);
-    drawPressedInsetShadow(playButton);
-    drawPressedInsetShadow(onceButton);
-    drawPressedInsetShadow(stackButton);
-    drawPressedInsetShadow(reverseButton);
+    drawPressedInsetShadow(thruMuteButton, false);
+    drawPressedInsetShadow(recordButton,   skin->roundFootswitches);
+    drawPressedInsetShadow(playButton,     skin->roundFootswitches);
+    drawPressedInsetShadow(onceButton,     skin->roundFootswitches);
+    drawPressedInsetShadow(stackButton,    skin->roundFootswitches);
+    drawPressedInsetShadow(reverseButton,  skin->roundFootswitches);
     
     // Additional overlay effects - only when overlays enabled
     if (showButtonOverlays)
@@ -293,8 +299,9 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
         drawHoverOverlay(reverseButton, juce::Colours::purple);
     }
     
-    // Volume slider overlay when interacting - small box that follows the slider position
-    if (volumeSlider.isMouseOver() || volumeSlider.isMouseButtonDown())
+    // Volume thumb overlay - small box that follows the slider position
+    // (skins that draw their own fader show the thumb at all times)
+    if (skin->alwaysShowVolumeThumb || volumeSlider.isMouseOver() || volumeSlider.isMouseButtonDown())
     {
         auto sliderBounds = volumeSlider.getBounds();
         double proportion = (volumeSlider.getValue() - volumeSlider.getMinimum()) / 
@@ -308,24 +315,36 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
         
         juce::Rectangle<int> thumbRect(thumbX, thumbY, thumbWidth, thumbHeight);
         
-        g.setColour(juce::Colours::cyan.withAlpha(volumeSlider.isMouseButtonDown() ? 0.5f : 0.3f));
+        float thumbAlpha = skin->alwaysShowVolumeThumb
+            ? (volumeSlider.isMouseButtonDown() ? 1.0f : 0.85f)
+            : (volumeSlider.isMouseButtonDown() ? 0.5f : 0.3f);
+        g.setColour(skin->volumeThumbColour.withAlpha(thumbAlpha));
         g.fillRect(thumbRect);
     }
     
-    // Draw LEDs at top of device (scaled coordinates)
+    // Draw LEDs at the skin's positions (scaled coordinates)
     float scale = getWidth() / 700.0f;
-    int ledSize = static_cast<int>(10 * scale);
-    int ledY = static_cast<int>(44 * scale);  // Near top of device
-    
-    // LED positions aligned with buttons below (approximate x positions)
+    int ledSize = static_cast<int>(skin->ledSize * scale);
+
     // Record LED: flash when loop wraps (like record button overlay), otherwise show normal state
     bool recordLEDFlashing = (recordFlashCounter > 0);
-    drawLED(g, static_cast<int>(208 * scale), ledY, ledSize, juce::Colours::green, recordLEDFlashing || recordLED);
-    drawLED(g, static_cast<int>(300 * scale), ledY, ledSize, juce::Colours::green, playLED);
-    drawLED(g, static_cast<int>(393 * scale), ledY, ledSize, juce::Colours::green, onceLED);
-    drawLED(g, static_cast<int>(485 * scale), ledY, ledSize, juce::Colours::green, reverseLED);
-    drawLED(g, static_cast<int>(579 * scale), ledY, ledSize, juce::Colours::green, stackLED);
-    drawLED(g, static_cast<int>(579 * scale), static_cast<int>(27 * scale), ledSize, juce::Colours::orange, slowLED);  // SLOW LED below stack LED
+    const bool ledStates[5] = { recordLEDFlashing || recordLED, playLED, onceLED, reverseLED, stackLED };
+    for (int i = 0; i < 5; ++i)
+        drawLED(g,
+                static_cast<int>(skin->ledPositions[(size_t) i].x * scale),
+                static_cast<int>(skin->ledPositions[(size_t) i].y * scale),
+                ledSize, skin->ledColours[(size_t) i], ledStates[i]);
+    drawLED(g,
+            static_cast<int>(skin->slowLedPosition.x * scale),
+            static_cast<int>(skin->slowLedPosition.y * scale),
+            ledSize, skin->slowLedColour, slowLED);
+
+    // Thru Mute engaged LED (only on skins that have one)
+    if (skin->hasThruMuteLed)
+        drawLED(g,
+                static_cast<int>(skin->thruMuteLedPosition.x * scale),
+                static_cast<int>(skin->thruMuteLedPosition.y * scale),
+                ledSize, skin->thruMuteLedColour, thruMuteButton.getToggleState());
     
     // Draw gear icon for settings button
     {
@@ -376,37 +395,31 @@ void BoomerangAudioProcessorEditor::resized()
     float scale = getWidth() / 700.0f;
     
     // Helper lambda to scale positions
-    auto scaleRect = [scale](int x, int y, int w, int h) {
+    auto scaleRect = [scale](juce::Rectangle<int> r) {
         return juce::Rectangle<int>(
-            static_cast<int>(x * scale),
-            static_cast<int>(y * scale),
-            static_cast<int>(w * scale),
-            static_cast<int>(h * scale)
+            static_cast<int>(r.getX() * scale),
+            static_cast<int>(r.getY() * scale),
+            static_cast<int>(r.getWidth() * scale),
+            static_cast<int>(r.getHeight() * scale)
         );
     };
-    
-    // Position transparent buttons over foot switches in the background image
-    // Base positions for 700x240 window:
-    
+
+    // Position transparent controls over the skin's control locations
+    // (base positions are in 700x200 coordinates)
+
     // Thru/Mute button (left side, above OUTPUT LEVEL)
-    thruMuteButton.setBounds(scaleRect(100, 20, 50, 30));
-    
-    // Volume slider overlays OUTPUT LEVEL knob on left side
+    thruMuteButton.setBounds(scaleRect(skin->thruMuteRect));
+
+    // Volume slider overlays the OUTPUT LEVEL control
     // Wide clickable area to emulate rolling the volume knob
-    volumeSlider.setBounds(scaleRect(70, 60, 120, 90));
-    
-    // Main foot switches (centered horizontally)
-    int baseStartX = 190;
-    int baseSpacing = 94;
-    int baseButtonY = 155;
-    int baseButtonWidth = 30;
-    int baseButtonHeight = 23;
-    
-    recordButton.setBounds(scaleRect(baseStartX, baseButtonY, baseButtonWidth, baseButtonHeight));
-    playButton.setBounds(scaleRect(baseStartX + baseSpacing, baseButtonY, baseButtonWidth, baseButtonHeight));
-    onceButton.setBounds(scaleRect(baseStartX + baseSpacing * 2, baseButtonY, baseButtonWidth, baseButtonHeight));
-    reverseButton.setBounds(scaleRect(baseStartX + baseSpacing * 3, baseButtonY, baseButtonWidth, baseButtonHeight));
-    stackButton.setBounds(scaleRect(baseStartX + baseSpacing * 4, baseButtonY, baseButtonWidth, baseButtonHeight));
+    volumeSlider.setBounds(scaleRect(skin->volumeRect));
+
+    // Main foot switches
+    recordButton.setBounds (scaleRect(skin->footswitchRects[0]));
+    playButton.setBounds   (scaleRect(skin->footswitchRects[1]));
+    onceButton.setBounds   (scaleRect(skin->footswitchRects[2]));
+    reverseButton.setBounds(scaleRect(skin->footswitchRects[3]));
+    stackButton.setBounds  (scaleRect(skin->footswitchRects[4]));
     
     // Settings button (gear icon) - top right corner of the device image
     int gearSize = static_cast<int>(28 * scale);
@@ -562,6 +575,29 @@ void BoomerangAudioProcessorEditor::drawLED(juce::Graphics& g, int x, int y, int
     }
 }
 
+void BoomerangAudioProcessorEditor::setSkin(int index)
+{
+    skinIndex = index;
+    skin      = &Skins::get(index);
+
+    // Procedural skins draw their own fader, so hide the stock slider chrome there
+    if (skin->alwaysShowVolumeThumb)
+    {
+        volumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
+        volumeSlider.setColour(juce::Slider::trackColourId,      juce::Colours::transparentBlack);
+        volumeSlider.setColour(juce::Slider::thumbColourId,      juce::Colours::transparentBlack);
+    }
+    else
+    {
+        volumeSlider.removeColour(juce::Slider::backgroundColourId);
+        volumeSlider.removeColour(juce::Slider::trackColourId);
+        volumeSlider.removeColour(juce::Slider::thumbColourId);
+    }
+
+    resized();  // re-place controls on the new skin's layout
+    repaint();
+}
+
 void BoomerangAudioProcessorEditor::updateStatusDisplay()
 {
     juce::String statusText;
@@ -617,12 +653,22 @@ void BoomerangAudioProcessorEditor::updateStatusDisplay()
 void BoomerangAudioProcessorEditor::showSettingsMenu()
 {
     juce::PopupMenu menu;
-    
+
     menu.addItem(1, "Show Button Overlays", true, showButtonOverlays);
     menu.addItem(2, "Show Footer Bar",      true, showFooterBar);
-    
+
+    juce::PopupMenu skinMenu;
+    for (int i = 0; i < Skins::count(); ++i)
+        skinMenu.addItem(100 + i, Skins::get(i).name, true, i == skinIndex);
+    menu.addSubMenu("Skin", skinMenu);
+
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settingsButton),
         [this](int result) {
+            if (result >= 100)
+            {
+                setSkin(result - 100);
+                return;
+            }
             switch (result)
             {
                 case 1:
