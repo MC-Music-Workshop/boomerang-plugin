@@ -154,7 +154,13 @@ A momentary button springs back, so it can't display the latched state itself �
 
 **How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
 
-⚠️ **Do not "widget-link" a button to its state param.** A link is bidirectional: the engine's state push travels back through the link and writes the input param, which re-triggers the button logic — a feedback loop. Keep the button (input) and the display (output) as independent widgets.
+## Bidirectional control support
+
+Devices that support bi-directional control messages can keep each other updated of their state.
+
+For example, I use MIDI Captain MAX to control a Boomerang plugin instance in Gig Performer (GP), could be any DAW. In Gig Performer I set each Boomerang parameter to a CC message from the MIDI Captain MAX, using the LEARN button in GP, and I set the Boomerang widgets in GP to SYNC. 
+
+When I press a button on the Captain, the plugin in GP will update as usual. The cool part is if i click a widget in GP, it will also be reflected on the Captain, immediately. MIDI Captain MAX is enabled by default to listen to these messages on each buttons' configured message. 
 
 # MIDI Configuration
 
@@ -165,6 +171,10 @@ I have tried to decouple the MIDI configuration from the plugin as much as possi
 Take a look at [page1.txt](midi/page1.txt) to see how it works. It's fairly self-explanatory, and I try to comment the code as much as I can, but I'll go over it here.
 
 ## MIDI Captain Configuration
+
+***NEEDS TO BE UPDATED***. MIDI Captain MAX is the recommended controller for the BOOMERANG plugin. (I make both products.)
+
+
 
 I'm using the "Super Mode 4.0" firmware, which allows for a lot of flexibility in the pedal's behavior. It provides for up to 7(?) "keypress" settings per switch, meaning you can cycle through 7(?) completely different configurations with each press of a switch. It can also send HID messages: keyboard/mouse messages. Each keypress can send any combination of MIDI/HID messages with each press. It also has individual configurations for each _kind_ of press - short down, short up (release), long down, and long up. You can also configure the LEDS for each keypress. It's a very powerful pedal.
 
