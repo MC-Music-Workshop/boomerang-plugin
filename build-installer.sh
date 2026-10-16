@@ -236,7 +236,7 @@ if [ "$CAN_SIGN_PKG" = true ] && [ "$CAN_NOTARIZE" = true ]; then
         # pkg's staple. The pkg submission covers the app's cdhash, so a
         # ticket exists for it. (VST3/AU bundles can't be stapled — hosts
         # rely on Gatekeeper's online check for those.)
-        if xcrun stapler staple "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Turrama.app"; then
+        if xcrun stapler staple "$BUILD_DIR/${ARTIFACT_SUBDIR}Standalone/Boomerang+.app"; then
             echo "  ✓ Standalone app stapled"
         else
             echo "  ⚠ Could not staple standalone app — zipped app will need internet for Gatekeeper"

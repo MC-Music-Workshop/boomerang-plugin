@@ -60,7 +60,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 The repository uses GitHub Actions for CI/CD:
 
 1. **Build workflow** (`.github/workflows/build.yml`, runs on branch pushes, `v*` tag pushes, and PRs): Builds macOS (universal), Windows, and Linux in parallel. macOS bundles are signed + notarized via `build-installer.sh` BEFORE the zip is packed (the standalone app also gets the notarization ticket stapled). A validate job runs `pluginval` on the artifacts; it does NOT rebuild.
-2. **Release workflow** (`.github/workflows/release.yml`, runs on `v*` tag push): waits for the tag-triggered Build run of that commit (`gh run watch`), downloads its artifacts, and creates a GitHub Release with `Turrama-latest-*` asset aliases for stable Gumroad URLs. A manual `workflow_dispatch` with a tag input re-releases an existing tag.
+2. **Release workflow** (`.github/workflows/release.yml`, runs on `v*` tag push): waits for the tag-triggered Build run of that commit (`gh run watch`), downloads its artifacts, and creates a GitHub Release with `Boomerang-latest-*` asset aliases for stable Gumroad URLs. A manual `workflow_dispatch` with a tag input re-releases an existing tag.
 
 To create a release:
 1. Tag the commit and push the tag: `git tag v3.0.0-alpha.2 && git push origin v3.0.0-alpha.2`
