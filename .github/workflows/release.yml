@@ -43,17 +43,28 @@ jobs:
           SHA=$(gh api "/repos/${GH_REPO}/commits/${TAG}" --jq '.sha')
           echo "Tag $TAG points to commit: $SHA"
 
-          # Give the tag-triggered build a moment to register
-          sleep 10
+          RUNS_URL="/repos/${GH_REPO}/actions/workflows/build.yml/runs?head_sha=${SHA}&per_page=20"
+          RUN_ID=""
 
-          # Prefer the run triggered by this tag push (its head_branch is the
-          # tag name); fall back to the most recent run for the commit
-          # (covers workflow_dispatch re-releases of an already-built tag).
-          RUN_ID=$(gh api "/repos/${GH_REPO}/actions/workflows/build.yml/runs?head_sha=${SHA}&per_page=20" \
-            --jq "[.workflow_runs[] | select(.head_branch == \"${TAG}\")][0].id // .workflow_runs[0].id // empty")
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Tag push: only the run triggered by this tag (head_branch == tag)
+            # carries the tag's version. Poll until it registers rather than
+            # falling back to a branch build of the same commit.
+            for i in $(seq 1 30); do
+              RUN_ID=$(gh api "$RUNS_URL" --jq "[.workflow_runs[] | select(.head_branch == \"${TAG}\")][0].id // empty")
+              [ -n "$RUN_ID" ] && break
+              echo "Tag build not registered yet (attempt $i/30), waiting 10s..."
+              sleep 10
+            done
+          else
+            # Manual re-release of an existing tag: prefer the tag's run, else
+            # the most recent run for the commit.
+            RUN_ID=$(gh api "$RUNS_URL" \
+              --jq "[.workflow_runs[] | select(.head_branch == \"${TAG}\")][0].id // .workflow_runs[0].id // empty")
+          fi
 
           if [ -z "$RUN_ID" ]; then
-            echo "::error::No build run found for commit ${SHA}. Is the commit pushed?"
+            echo "::error::No build run found for tag ${TAG} (commit ${SHA}). Is the commit pushed?"
             exit 1
           fi
 

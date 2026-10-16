@@ -76,8 +76,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         0.5f));
 
     // Input routing - which input channels feed the looper (issue #69)
+    // Version hint 2: AU orders parameters by hint, so new parameters need a
+    // higher hint than existing ones to keep Logic/GarageBand automation intact
     layout.add(std::make_unique<juce::AudioParameterChoice>(
-        juce::ParameterID(ParameterIDs::inputSource, 1),
+        juce::ParameterID(ParameterIDs::inputSource, 2),
         "Input Source",
         InputSource::names,
         InputSource::stereo));
