@@ -75,6 +75,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
         0.5f));
 
+    // Input routing - which input channels feed the looper (issue #69)
+    // Version hint 2: AU orders parameters by hint, so new parameters need a
+    // higher hint than existing ones to keep Logic/GarageBand automation intact
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID(ParameterIDs::inputSource, 2),
+        "Input Source",
+        InputSource::names,
+        InputSource::stereo));
+
     return layout;
 }
 
@@ -342,6 +351,14 @@ void BoomerangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             looperEngine->setFeedback(feedbackValue);
     }
 
+    // Route the stereo input pair before the engine, so the dry signal and the
+    // recorded loop both follow the selected source (issue #69)
+    if (totalNumInputChannels >= 2)
+    {
+        if (auto* sourceParam = apvts.getRawParameterValue(ParameterIDs::inputSource))
+            applyInputSource(buffer, static_cast<int>(sourceParam->load()));
+    }
+
     // Process audio through looper engine
     looperEngine->processBlock(buffer);
 
@@ -399,6 +416,30 @@ void BoomerangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 }
             });
         }
+    }
+}
+
+// 2x2 input matrix: Stereo passes L/R through, Left/Right copy one side to both,
+// Mono averages both sides onto both (0.5 gain keeps two hot sources from clipping)
+void BoomerangAudioProcessor::applyInputSource(juce::AudioBuffer<float>& buffer, int source)
+{
+    const int num_samples = buffer.getNumSamples();
+
+    switch (source)
+    {
+        case InputSource::left:
+            buffer.copyFrom(1, 0, buffer, 0, 0, num_samples);
+            break;
+        case InputSource::right:
+            buffer.copyFrom(0, 0, buffer, 1, 0, num_samples);
+            break;
+        case InputSource::mono:
+            buffer.addFrom(0, 0, buffer, 1, 0, num_samples);
+            buffer.applyGain(0, 0, num_samples, 0.5f);
+            buffer.copyFrom(1, 0, buffer, 0, 0, num_samples);
+            break;
+        default:  // stereo - leave as is
+            break;
     }
 }
 
