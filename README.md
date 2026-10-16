@@ -132,11 +132,25 @@ The THRU MUTE switch is also useful when the user wants to play a reverse solo l
 
 The OUTPUT LEVEL roller on the front panel of the Boomerang Phrase Sampler controls the playback volume but has no effect on the through signal. The output level can be adjusted at any time and is not stored in memory. The OUTPUT LEVEL roller is a high quality, sealed potentiometer and is very smooth in operation. The output level can be adjusted from zero to full output and is very useful for balancing the loop with the through signal. The OUTPUT LEVEL roller is also useful for setting the level of the loop signal when the THRU MUTE switch is turned off and only the loop signal is present.
 
+# Input Source
+
+The plugin takes a stereo input. Choose how the two input channels feed the looper from the gear menu > **Input Source** (also exposed as the `inputSource` host parameter):
+
+| Input Source | Left out | Right out |
+|---|---|---|
+| Stereo (default) | Left in | Right in |
+| Left only | Left in | Left in |
+| Right only | Right in | Right in |
+| Mono (L + R) | Average of both | Average of both |
+
+Routing happens before the looper, so the through signal and the recorded loop both follow it. Use **Left only** or **Right only** to loop a single source (for example a guitar on input 1 and a mic on input 2), or **Mono** to centre both. With a mono input the setting has no effect: the single channel is already sent to both outputs.
+
 # Gig Performer Integration
 
 The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
 
 - **Input params** — `play`, `record`, `once`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
+- **Settings params** — `volume`, `feedback`, `inputSource`.
 - **State output params** (read-only) — `playState`, `onceState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
 
 ## Buttons should be Momentary

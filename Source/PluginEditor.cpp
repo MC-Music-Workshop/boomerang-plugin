@@ -620,9 +620,27 @@ void BoomerangAudioProcessorEditor::showSettingsMenu()
     
     menu.addItem(1, "Show Button Overlays", true, showButtonOverlays);
     menu.addItem(2, "Show Footer Bar",      true, showFooterBar);
+
+    // Input Source submenu (issue #69) - item IDs start at inputSourceMenuBase
+    auto* sourceParam = audioProcessor.getAPVTS().getParameter(ParameterIDs::inputSource);
+    auto  current     = static_cast<int>(audioProcessor.getAPVTS().getRawParameterValue(ParameterIDs::inputSource)->load());
+    juce::PopupMenu sourceMenu;
+    for (int i = 0; i < InputSource::names.size(); ++i)
+        sourceMenu.addItem(inputSourceMenuBase + i, InputSource::names[i], true, i == current);
+
+    menu.addSeparator();
+    menu.addSubMenu("Input Source", sourceMenu);
     
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settingsButton),
-        [this](int result) {
+        [this, sourceParam](int result) {
+            if (result >= inputSourceMenuBase && sourceParam != nullptr)
+            {
+                sourceParam->beginChangeGesture();
+                sourceParam->setValueNotifyingHost(sourceParam->convertTo0to1(static_cast<float>(result - inputSourceMenuBase)));
+                sourceParam->endChangeGesture();
+                return;
+            }
+
             switch (result)
             {
                 case 1:

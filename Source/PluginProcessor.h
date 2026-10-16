@@ -9,18 +9,26 @@
 // Parameter IDs
 namespace ParameterIDs
 {
-    const juce::String thruMute   = "thruMute";
-    const juce::String record     = "record";
-    const juce::String play       = "play";
-    const juce::String once       = "once";
-    const juce::String stack      = "stack";
-    const juce::String reverse    = "reverse";
-    const juce::String volume     = "volume";
-    const juce::String feedback   = "feedback";
-    const juce::String loopCycle  = "loopCycle";  // Pulses when loop wraps (for REC blink)
-    const juce::String slowMode   = "slowMode";   // On when speed is half (SLOW LED)
-    const juce::String onceState  = "onceState"; // On when Once mode is active (ONCE LED)
-    const juce::String playState  = "playState"; // On when playing (for PLAY/STOP widget)
+    const juce::String thruMute    = "thruMute";
+    const juce::String record      = "record";
+    const juce::String play        = "play";
+    const juce::String once        = "once";
+    const juce::String stack       = "stack";
+    const juce::String reverse     = "reverse";
+    const juce::String volume      = "volume";
+    const juce::String feedback    = "feedback";
+    const juce::String loopCycle   = "loopCycle";  // Pulses when loop wraps (for REC blink)
+    const juce::String slowMode    = "slowMode";   // On when speed is half (SLOW LED)
+    const juce::String onceState   = "onceState"; // On when Once mode is active (ONCE LED)
+    const juce::String playState   = "playState"; // On when playing (for PLAY/STOP widget)
+    const juce::String inputSource = "inputSource"; // 2x2 input routing (issue #69)
+}
+
+// Choices for the inputSource parameter, in parameter index order
+namespace InputSource
+{
+    enum { stereo = 0, left, right, mono };
+    const juce::StringArray names { "Stereo", "Left only", "Right only", "Mono (L + R)" };
 }
 
 //==============================================================================
@@ -105,6 +113,9 @@ private:
     std::atomic<int> loopCyclePulseCounter { 0 };
     static constexpr int loopCyclePulseDurationFrames = 5;  // ~80ms at 60Hz callback rate
     
+    // Applies the inputSource routing to the first two channels of the buffer
+    static void applyInputSource(juce::AudioBuffer<float>& buffer, int source);
+
     // Helper function to create parameter layout
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

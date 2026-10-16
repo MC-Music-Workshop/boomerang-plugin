@@ -96,6 +96,7 @@ private:
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
     void showSettingsMenu();
+    static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BoomerangAudioProcessorEditor)
 };
