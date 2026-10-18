@@ -86,8 +86,8 @@ public:
     void onPlayButtonPressed();
     void onOnceButtonPressed();
     void onOnceOffButtonPressed();    // Cancels Once mode, loop keeps playing (issue #62)
-    void onStackButtonPressed();     // Momentary: called when pressed
-    void onStackButtonReleased();     // Momentary: called when released
+    void onStackButtonPressed();      // Momentary: called when pressed (latch: toggles the stack)
+    void onStackButtonReleased();     // Momentary: called when released (latch: ignored)
     void onReverseButtonPressed();
 
     //==============================================================================
@@ -96,6 +96,7 @@ public:
     void setExtendedFeatures(bool enabled) { extendedFeatures.store(enabled); }
     bool getExtendedFeatures() const       { return extendedFeatures.load(); }
     void setFeedback(float feedback) { feedbackAmount.store(feedback); }
+    void setStackLatch(bool latch) { stackLatch.store(latch); }
 
     //==============================================================================
     // State queries for UI updates (thread-safe via atomic loads)
@@ -185,6 +186,7 @@ private:
     // Audio processing parameters (thread-safe)
     std::atomic<float> outputVolume { 1.0f };
     std::atomic<float> feedbackAmount { 0.5f };
+    std::atomic<bool> stackLatch { false };  // STACK presses toggle overdub instead of holding it (issue #71)
 
     // Timing and synchronization
     std::atomic<bool> loopWrapped{false};  // Set when loop cycles to position 0

@@ -36,6 +36,7 @@ private:
     juce::TextButton onceButton;
     juce::TextButton stackButton;
     juce::TextButton reverseButton;
+    juce::TextButton stackLatchButton;  // Hit area for the MOM | LATCH slide switch (issue #71)
     juce::TextButton onceOffButton;  // Hit area for the ONCE OFF push-button (issue #62)
 
     juce::Slider volumeSlider;
@@ -63,6 +64,7 @@ private:
 
     // Parameter Attachments - only for continuous controls
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volumeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> stackLatchAttachment;
 
     // Visual state / settings
     bool showButtonOverlays = false;  // Toggle for button hover/state overlays
@@ -77,6 +79,7 @@ private:
     juce::Colour thruMuteColour_OFF = juce::Colours::lightgrey;
     
     int recordFlashCounter = 0;  // For loop wrap flash indicator
+    float stackLatchThumbPos = 0.0f;  // Slide switch thumb: 0 = MOM, 1 = LATCH (eased in timer)
     std::atomic<bool> stackButtonWasDown { false };  // Track STACK button state for proper press/release
     
     // Button press animation state
@@ -96,6 +99,7 @@ private:
     void setupButton(juce::TextButton& button, const juce::String& text, juce::Colour colour, bool isToggle = false);
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
+    void drawStackLatchSwitch(juce::Graphics& g, float scale);
     void drawOnceOffButton(juce::Graphics& g, float scale);
     void showSettingsMenu();
     static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu

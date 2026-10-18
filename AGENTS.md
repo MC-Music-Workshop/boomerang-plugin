@@ -96,6 +96,8 @@ Local testing with `act` (requires Docker):
 - Issue #43 (REC LED when stacking) is an enhancement request.
 - Current release: v2.0.0-beta-1 (JUCE port). Beta quality - core functionality stable, polishing phase. Builds shipped: VST3, AU (macOS), Standalone app (macOS); Windows/Linux use VST3. Installation paths: `~/Library/Audio/Plug-Ins/Components`, `~/Library/Audio/Plug-Ins/VST3`. Please file new issues for any problems.
 - releases/ folder is git-ignored; use GitHub Releases for distribution instead.
+- **Invisible (alpha 0) footswitch buttons + `onStateChange`**: on mouse-up, JUCE `Button::mouseUp` flashes a button that was never painted in its down state (`lastStatePainted`) back to `buttonDown` for 100ms. Alpha-0 components are never painted, so every click fires a phantom second press/release through `onStateChange`. Gate press detection on `isMouseButtonDown()` (see the STACK handler, issue #71). `onClick` isn't affected.
+- **Testing the UI without the user's instance**: run a second standalone with isolated settings, `HOME=<tmp dir> "$BOOM_STANDALONE_PATH/Contents/MacOS/Boomerang+" &`, then kill it by PID. Scripted `setState()` / engine calls don't reproduce real mouse behavior (they missed the flash above), so confirm click behavior by hand.
 - Release notes style preference: concise Markdown with top-level title like `v2.0.0-beta-1 (JUCE port)`, sections for What's new, Installation (macOS and Windows/Linux), Known issues, and How to help (link to new issue form). Tone should be direct and instructional.
 
 ## Tech Debt

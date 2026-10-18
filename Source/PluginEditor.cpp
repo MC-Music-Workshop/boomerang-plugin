@@ -48,6 +48,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     stackButton.setAlpha(0.0f);
     reverseButton.setAlpha(0.0f);
 
+    // STACK mode slide switch: invisible hit area, the switch itself is drawn in paint() (issue #71)
+    setupButton(stackLatchButton, "", juce::Colours::transparentBlack, true);
+    stackLatchButton.setAlpha(0.0f);
+
     // ONCE OFF push-button: invisible hit area, the button itself is drawn in paint() (issue #62)
     setupButton(onceOffButton, "", juce::Colours::transparentBlack, false);
     onceOffButton.setAlpha(0.0f);
@@ -86,7 +90,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     // Attach continuous controls to APVTS
     volumeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getAPVTS(), "volume", volumeSlider);
-    
+    stackLatchAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.getAPVTS(), ParameterIDs::stackLatch, stackLatchButton);
+    stackLatchThumbPos = stackLatchButton.getToggleState() ? 1.0f : 0.0f;  // Start in place, no slide on open
+
     // All buttons use onClick - manual control, visual state synced in timer
     thruMuteButton.onClick = [this]() {
         audioProcessor.getLooperEngine()->onThruMuteButtonPressed();
@@ -124,7 +131,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     
     // Handle press/release for overdub while playing
     stackButton.onStateChange = [this]() {
-        bool isDown = stackButton.isDown();
+        // Only count it as down while the mouse is really held. On release, JUCE flashes an
+        // unpainted (alpha 0) button back to down for 100ms, which read as a second press
+        // and unlatched the stack straight away (issue #71)
+        bool isDown = stackButton.isDown() && stackButton.isMouseButtonDown();
         bool wasDown = stackButtonWasDown.load();
         auto state = audioProcessor.getLooperEngine()->getState();
         
@@ -335,6 +345,8 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     drawLED(g, static_cast<int>(579 * scale), ledY, ledSize, juce::Colours::green, stackLED);
     drawLED(g, static_cast<int>(579 * scale), static_cast<int>(27 * scale), ledSize, juce::Colours::orange, slowLED);  // SLOW LED below stack LED
 
+    if (stackLatchButton.isVisible())
+        drawStackLatchSwitch(g, scale);
     if (onceOffButton.isVisible())
         drawOnceOffButton(g, scale);
 
@@ -419,6 +431,9 @@ void BoomerangAudioProcessorEditor::resized()
     reverseButton.setBounds(scaleRect(baseStartX + baseSpacing * 3, baseButtonY, baseButtonWidth, baseButtonHeight));
     stackButton.setBounds(scaleRect(baseStartX + baseSpacing * 4, baseButtonY, baseButtonWidth, baseButtonHeight));
 
+    // STACK mode slide switch, labels included, in the open panel space under the "+" (issue #71)
+    stackLatchButton.setBounds(scaleRect(560, 113, 50, 14));
+
     // ONCE OFF push-button, legend included, on the bare panel between ONCE and DIRECTION (issue #62)
     onceOffButton.setBounds(scaleRect(420, 149, 36, 26));
 
@@ -490,8 +505,13 @@ void BoomerangAudioProcessorEditor::timerCallback()
     bool isThruMuted = (thruMuteState == LooperEngine::ThruMuteState::On);
     thruMuteButton.setToggleState(isThruMuted, juce::dontSendNotification);
 
+    // Ease the slide switch thumb towards its new position over a few frames
+    float latchTarget = stackLatchButton.getToggleState() ? 1.0f : 0.0f;
+    stackLatchThumbPos += (latchTarget - stackLatchThumbPos) * 0.4f;
+
     // Extension controls disappear when Extended Features is off (also follows session reloads)
     onceOffButton.setVisible(audioProcessor.getExtendedFeatures());
+    stackLatchButton.setVisible(audioProcessor.getExtendedFeatures());
 
     // Flash record button when loopCycle parameter is pulsed (issue #51)
     // The Processor now handles detecting loop wraps and pulsing loopCycle
@@ -577,6 +597,59 @@ void BoomerangAudioProcessorEditor::drawLED(juce::Graphics& g, int x, int y, int
         g.setColour(colour.withAlpha(0.1f));
         g.fillEllipse(x - size/2, y - size/2, size, size);
     }
+}
+
+// Miniature slide switch for STACK mode, styled like panel hardware (issue #71)
+// Coordinates are in the 700x200 base image space, scaled to the window
+void BoomerangAudioProcessorEditor::drawStackLatchSwitch(juce::Graphics& g, float scale)
+{
+    auto s = [scale](float v) { return v * scale; };
+
+    const juce::Rectangle<float> slot(s(563.0f), s(116.0f), s(20.0f), s(7.0f));  // Clear band between logo and STACK legend
+    const float slotRadius = slot.getHeight() * 0.5f;
+
+    // Recessed slot: faint highlight on the lower lip, dark well with a shadowed top edge
+    g.setColour(juce::Colours::white.withAlpha(0.12f));
+    g.fillRoundedRectangle(slot.translated(0.0f, s(0.8f)), slotRadius);
+    g.setColour(juce::Colour(0xff080808));
+    g.fillRoundedRectangle(slot, slotRadius);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::black, slot.getX(), slot.getY(),
+                                           juce::Colours::transparentBlack, slot.getX(), slot.getCentreY(), false));
+    g.fillRoundedRectangle(slot, slotRadius);
+
+    // Thumb: moulded plastic actuator that slides between the two ends of the slot
+    const float thumbSize   = s(9.0f);
+    const float thumbRadius = s(1.5f);
+    const float thumbLeft   = slot.getX() - s(0.5f);
+    const float thumbRight  = slot.getRight() - thumbSize + s(0.5f);
+    const juce::Rectangle<float> thumb(thumbLeft + (thumbRight - thumbLeft) * stackLatchThumbPos,
+                                       slot.getCentreY() - thumbSize * 0.5f, thumbSize, thumbSize);
+
+    g.setColour(juce::Colours::black.withAlpha(0.55f));
+    g.fillRoundedRectangle(thumb.translated(0.0f, s(1.0f)), thumbRadius);  // Drop shadow
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff6a6a6a), thumb.getX(), thumb.getY(),
+                                           juce::Colour(0xff262626), thumb.getX(), thumb.getBottom(), false));
+    g.fillRoundedRectangle(thumb, thumbRadius);
+    g.setColour(juce::Colour(0xff111111));
+    g.drawRoundedRectangle(thumb, thumbRadius, s(0.5f));
+
+    // Grip ridges: a dark groove with a lit edge, three across
+    for (int i = -1; i <= 1; ++i)
+    {
+        const float x = thumb.getCentreX() + static_cast<float>(i) * s(2.2f);
+        g.setColour(juce::Colours::black.withAlpha(0.6f));
+        g.fillRect(x, thumb.getY() + s(2.0f), s(0.6f), thumbSize - s(4.0f));
+        g.setColour(juce::Colours::white.withAlpha(0.18f));
+        g.fillRect(x + s(0.6f), thumb.getY() + s(2.0f), s(0.5f), thumbSize - s(4.0f));
+    }
+
+    // Single LATCH legend printed like the panel's white text; it reads brighter when latched
+    const bool latched = stackLatchButton.getToggleState();
+
+    g.setFont(juce::Font(juce::FontOptions(s(6.0f)).withStyle("Italic")));  // Italic caps, like SLOW / STACK
+    g.setColour(juce::Colour(0xffe8e8e8).withAlpha(latched ? 0.95f : 0.45f));
+    g.drawText("LATCH", juce::Rectangle<float>(slot.getRight() + s(1.5f), slot.getCentreY() - s(6.5f), s(20.0f), s(13.0f)),
+               juce::Justification::centredLeft, false);
 }
 
 // Half-size copy of the panel's ribbed rubber footswitch pads, for ONCE OFF (issue #62)
