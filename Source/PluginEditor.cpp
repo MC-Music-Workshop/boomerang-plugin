@@ -575,7 +575,7 @@ void BoomerangAudioProcessorEditor::drawLED(juce::Graphics& g, int x, int y, int
     }
 }
 
-// Miniature panel-mount push-button for ONCE OFF, styled like panel hardware (issue #62)
+// Half-size copy of the panel's ribbed rubber footswitch pads, for ONCE OFF (issue #62)
 // Coordinates are in the 700x200 base image space, scaled to the window
 void BoomerangAudioProcessorEditor::drawOnceOffButton(juce::Graphics& g, float scale)
 {
@@ -584,38 +584,42 @@ void BoomerangAudioProcessorEditor::drawOnceOffButton(juce::Graphics& g, float s
     const juce::Point<float> centre(s(438.0f), s(166.0f));  // Bare panel between ONCE and DIRECTION footswitches
     const bool pressed = onceOffButton.isDown();
 
-    // Bezel nut: metal ring lit from above, with a drop shadow on the panel
-    const auto bezel = juce::Rectangle<float>(s(14.0f), s(14.0f)).withCentre(centre);
-    g.setColour(juce::Colours::black.withAlpha(0.55f));
-    g.fillEllipse(bezel.translated(0.0f, s(1.0f)));
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffb4b4b4), bezel.getX(), bezel.getY(),
-                                           juce::Colour(0xff363636), bezel.getX(), bezel.getBottom(), false));
-    g.fillEllipse(bezel);
+    // Shadow under the pad's lower edge, like the footswitches cast on the panel
+    const auto  pad    = juce::Rectangle<float>(s(17.0f), s(14.0f)).withCentre(centre);
+    const float radius = s(3.5f);
+    g.setColour(juce::Colours::black.withAlpha(0.6f));
+    g.fillRoundedRectangle(pad.expanded(s(0.3f)).translated(0.0f, s(0.8f)), radius);
 
-    // Dark well the cap sits in
-    const auto well = bezel.reduced(s(1.5f));
-    g.setColour(juce::Colour(0xff080808));
-    g.fillEllipse(well);
+    // Rubber body, lit from above; sinks a little while pressed
+    const auto body = pad.translated(0.0f, pressed ? s(0.5f) : 0.0f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff5e5e5e), body.getX(), body.getY(),
+                                           juce::Colour(0xff363636), body.getX(), body.getBottom(), false));
+    g.fillRoundedRectangle(body, radius);
 
-    // Cap: domed black plastic that sinks and darkens while pressed
-    const auto cap = well.reduced(s(0.8f)).translated(0.0f, pressed ? s(0.6f) : 0.0f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour(pressed ? 0xff353535 : 0xff5c5c5c),
-                                           cap.getX() + cap.getWidth() * 0.35f, cap.getY() + cap.getHeight() * 0.3f,
-                                           juce::Colour(0xff121212), cap.getRight(), cap.getBottom(), true));
-    g.fillEllipse(cap);
-
-    // Specular glint on the dome, gone when pressed into the well
-    if (!pressed)
+    // Grooves: dark horizontal ribs across the pad, split down the middle
+    g.setColour(juce::Colour(0xff141414));
+    const int numGrooves = 4;
+    for (int i = 1; i <= numGrooves; ++i)
     {
-        g.setColour(juce::Colours::white.withAlpha(0.3f));
-        g.fillEllipse(juce::Rectangle<float>(s(2.4f), s(1.4f)).withCentre({ cap.getX() + cap.getWidth() * 0.38f,
-                                                                            cap.getY() + cap.getHeight() * 0.26f }));
+        const float y = body.getY() + body.getHeight() * static_cast<float>(i) / static_cast<float>(numGrooves + 1);
+        g.fillRect(body.getX() + s(1.2f), y - s(0.45f), body.getWidth() - s(2.4f), s(0.9f));
+    }
+    g.fillRect(body.getCentreX() - s(0.4f), body.getY() + s(1.5f), s(0.8f), body.getHeight() - s(3.0f));
+
+    // Rubber rim catching the light
+    g.setColour(juce::Colours::white.withAlpha(0.22f));
+    g.drawRoundedRectangle(body.reduced(s(0.3f)), radius, s(0.6f));
+
+    if (pressed)
+    {
+        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.fillRoundedRectangle(body, radius);
     }
 
     // ONCE OFF legend printed like the panel's white text; it reads brighter while Once is armed
     g.setFont(juce::Font(juce::FontOptions(s(6.0f)).withStyle("Italic")));  // Italic caps, like SLOW / STACK
     g.setColour(juce::Colour(0xffe8e8e8).withAlpha(onceLED ? 0.95f : 0.45f));
-    g.drawText("ONCE OFF", juce::Rectangle<float>(s(36.0f), s(8.0f)).withCentre({ centre.x, bezel.getY() - s(4.5f) }),
+    g.drawText("ONCE OFF", juce::Rectangle<float>(s(36.0f), s(8.0f)).withCentre({ centre.x, pad.getY() - s(4.5f) }),
                juce::Justification::centred, false);
 }
 
