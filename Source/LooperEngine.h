@@ -93,6 +93,8 @@ public:
     //==============================================================================
     // Parameter setters
     void setVolume(float volume) { outputVolume.store(volume); }
+    void setExtendedFeatures(bool enabled) { extendedFeatures.store(enabled); }
+    bool getExtendedFeatures() const       { return extendedFeatures.load(); }
     void setFeedback(float feedback) { feedbackAmount.store(feedback); }
 
     //==============================================================================
@@ -171,6 +173,7 @@ private:
     std::atomic<DirectionMode> currentDirection{DirectionMode::Forward};
     std::atomic<StackMode> stackMode{StackMode::Off};
     std::atomic<OnceMode> onceMode{OnceMode::Off};
+    std::atomic<bool> extendedFeatures{true};  // Non-hardware features (ONCE OFF); off = faithful emulation
     std::atomic<ThruMuteState> thruMute{ThruMuteState::Off};
     std::atomic<SpeedMode> speedMode{SpeedMode::Normal};
 
