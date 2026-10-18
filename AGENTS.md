@@ -27,7 +27,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - After committing: `cd build && make -j8` (git hash updates automatically at build time; only PluginEditor.cpp recompiles).
 - Note: Plugins auto-install to system directories when rebuilt via COPY_PLUGIN_AFTER_BUILD.
 - Build installer: `./build-installer.sh` (creates macOS .pkg installer with VST3, AU, and Standalone).
-- Tests: `pluginval --validate build/Boomerang_artefacts/VST3/Boomerang.vst3` (run VST3 compliance tests).
+- Tests: `cd build && make validate` (builds the VST3 if needed, then runs pluginval at CI's strictness level 5; `./build.sh` runs it automatically at the end). Install with `brew install --cask pluginval`, then re-run cmake so it gets found; the cask doesn't put `pluginval` on `PATH`, but CMake looks in `/Applications`.
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
 
 ## Coding Style & Naming Conventions

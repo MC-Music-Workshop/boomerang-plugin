@@ -28,3 +28,7 @@ echo "Verifying architectures:"
 lipo -info build/Boomerang_artefacts/Standalone/Boomerang+.app/Contents/MacOS/Boomerang+
 lipo -info build/Boomerang_artefacts/VST3/Boomerang+.vst3/Contents/MacOS/Boomerang+
 lipo -info build/Boomerang_artefacts/AU/Boomerang+.component/Contents/MacOS/Boomerang+
+
+echo ""
+echo "Validating VST3 with pluginval..."
+cmake --build build --target validate
