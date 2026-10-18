@@ -27,6 +27,12 @@ namespace ParameterIDs
     const juce::String onceOff     = "onceOff";     // Cancels Once mode, loop keeps playing (issue #62)
 }
 
+// Plugin state properties that aren't host parameters (saved with the session)
+namespace StateIDs
+{
+    const juce::Identifier extendedFeatures { "extendedFeatures" };  // Non-hardware features on/off
+}
+
 // Choices for the inputSource parameter, in parameter index order
 namespace InputSource
 {
@@ -91,6 +97,10 @@ public:
     
     // Looper engine access for UI
     LooperEngine* getLooperEngine() const { return looperEngine.get(); }
+
+    // Features the original hardware doesn't have; off = faithful emulation
+    void setExtendedFeatures(bool enabled);
+    bool getExtendedFeatures() const { return looperEngine->getExtendedFeatures(); }
 
 private:
     //==============================================================================

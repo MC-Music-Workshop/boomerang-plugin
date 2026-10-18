@@ -49,8 +49,6 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     reverseButton.setAlpha(0.0f);
 
     // STACK mode slide switch: invisible hit area, the switch itself is drawn in paint() (issue #71)
-    // TODO(extended-features): hide the switch (hit area and drawing) when Extended Features
-    // is off, like onceOffButton (branch extended-features, #62)
     setupButton(stackLatchButton, "", juce::Colours::transparentBlack, true);
     stackLatchButton.setAlpha(0.0f);
 
@@ -347,8 +345,10 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     drawLED(g, static_cast<int>(579 * scale), ledY, ledSize, juce::Colours::green, stackLED);
     drawLED(g, static_cast<int>(579 * scale), static_cast<int>(27 * scale), ledSize, juce::Colours::orange, slowLED);  // SLOW LED below stack LED
 
-    drawStackLatchSwitch(g, scale);
-    drawOnceOffButton(g, scale);
+    if (stackLatchButton.isVisible())
+        drawStackLatchSwitch(g, scale);
+    if (onceOffButton.isVisible())
+        drawOnceOffButton(g, scale);
 
     // Draw gear icon for settings button
     {
@@ -508,6 +508,10 @@ void BoomerangAudioProcessorEditor::timerCallback()
     // Ease the slide switch thumb towards its new position over a few frames
     float latchTarget = stackLatchButton.getToggleState() ? 1.0f : 0.0f;
     stackLatchThumbPos += (latchTarget - stackLatchThumbPos) * 0.4f;
+
+    // Extension controls disappear when Extended Features is off (also follows session reloads)
+    onceOffButton.setVisible(audioProcessor.getExtendedFeatures());
+    stackLatchButton.setVisible(audioProcessor.getExtendedFeatures());
 
     // Flash record button when loopCycle parameter is pulsed (issue #51)
     // The Processor now handles detecting loop wraps and pulsing loopCycle
@@ -763,6 +767,7 @@ void BoomerangAudioProcessorEditor::showSettingsMenu()
         sourceMenu.addItem(inputSourceMenuBase + i, InputSource::names[i], true, i == current);
 
     menu.addSeparator();
+    menu.addItem(3, "Extended Features", true, audioProcessor.getExtendedFeatures());
     menu.addSubMenu("Input Source", sourceMenu);
     
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settingsButton),
@@ -805,6 +810,9 @@ void BoomerangAudioProcessorEditor::showSettingsMenu()
                     }
                     break;
                 }
+                case 3:
+                    audioProcessor.setExtendedFeatures(!audioProcessor.getExtendedFeatures());
+                    break;
                 default:
                     break;
             }

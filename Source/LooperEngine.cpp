@@ -250,7 +250,7 @@ void LooperEngine::onOnceOffButtonPressed()
     if (!stateTransitionInProgress.compare_exchange_strong(expected, true))
         return;  // Another thread is already processing a button press
 
-    if (onceMode.load() == OnceMode::On)
+    if (extendedFeatures.load() && onceMode.load() == OnceMode::On)
         setOnceMode(OnceMode::Off);
 
     stateTransitionInProgress.store(false);

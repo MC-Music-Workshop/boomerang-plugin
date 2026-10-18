@@ -104,8 +104,6 @@ Local testing with `act` (requires Docker):
 
 - **Reusable signing action**: The macOS code signing + notarization logic is duplicated between `boomerang-plugin` and `midi-captain-max`. Extract into a reusable composite action or shared workflow. See `midi-captain-max/.github/workflows/ci.yml` for the canonical pattern. Priority: medium (pay this down before adding a third repo).
 
-- **STACK LATCH vs Extended Features**: STACK LATCH (#71) is a non-hardware feature, but it was built before the Extended Features toggle (branch `extended-features`, #62) merged. Whichever merges second must gate LATCH on it: hide the slide switch and treat `stackLatch` as off when Extended Features is off. Search for `TODO(extended-features)`.
-
 ## Template Substitution
 
 **Principle: Always do the simple thing until you can't.**

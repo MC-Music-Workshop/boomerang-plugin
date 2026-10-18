@@ -377,11 +377,9 @@ void BoomerangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             looperEngine->setFeedback(feedbackValue);
     }
 
-    // TODO(extended-features): LATCH isn't on the original hardware. Once the Extended
-    // Features toggle lands (branch extended-features, #62), ignore stackLatch when it's off
-    // (pass false here), like the onceOff param
+    // LATCH isn't on the original hardware, so it's ignored when Extended Features is off
     if (auto* latchParam = apvts.getRawParameterValue(ParameterIDs::stackLatch))
-        looperEngine->setStackLatch(latchParam->load() >= 0.5f);
+        looperEngine->setStackLatch(latchParam->load() >= 0.5f && looperEngine->getExtendedFeatures());
 
     // Route the stereo input pair before the engine, so the dry signal and the
     // recorded loop both follow the selected source (issue #69)
@@ -503,7 +501,10 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
     if (xmlState.get() != nullptr)
         if (xmlState->hasTagName(apvts.state.getType()))
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
-    
+
+    // Sessions saved before this setting existed have no property: default on
+    looperEngine->setExtendedFeatures(apvts.state.getProperty(StateIDs::extendedFeatures, true));
+
     // Reset read-only indicator parameters AND engine state to defaults
     // These are state indicators, not persistent settings
     if (auto* slowParam = apvts.getParameter(ParameterIDs::slowMode))
@@ -515,6 +516,13 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
     
     // Reset engine to default state (Normal speed, Once off, etc.)
     looperEngine->resetTransientState();
+}
+
+void BoomerangAudioProcessor::setExtendedFeatures(bool enabled)
+{
+    // Stored on the APVTS state so it's saved with the session, without being a host parameter
+    apvts.state.setProperty(StateIDs::extendedFeatures, enabled, nullptr);
+    looperEngine->setExtendedFeatures(enabled);
 }
 
 //==============================================================================
