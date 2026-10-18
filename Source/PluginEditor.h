@@ -36,7 +36,8 @@ private:
     juce::TextButton onceButton;
     juce::TextButton stackButton;
     juce::TextButton reverseButton;
-    
+    juce::TextButton onceOffButton;  // Hit area for the ONCE OFF push-button (issue #62)
+
     juce::Slider volumeSlider;
     
     juce::Label titleLabel;
@@ -95,6 +96,7 @@ private:
     void setupButton(juce::TextButton& button, const juce::String& text, juce::Colour colour, bool isToggle = false);
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
+    void drawOnceOffButton(juce::Graphics& g, float scale);
     void showSettingsMenu();
     static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu
 

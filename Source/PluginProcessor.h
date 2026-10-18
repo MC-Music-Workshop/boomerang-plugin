@@ -22,6 +22,7 @@ namespace ParameterIDs
     const juce::String onceState   = "onceState"; // On when Once mode is active (ONCE LED)
     const juce::String playState   = "playState"; // On when playing (for PLAY/STOP widget)
     const juce::String inputSource = "inputSource"; // 2x2 input routing (issue #69)
+    const juce::String onceOff     = "onceOff";     // Cancels Once mode, loop keeps playing (issue #62)
 }
 
 // Choices for the inputSource parameter, in parameter index order

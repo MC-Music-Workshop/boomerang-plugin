@@ -48,6 +48,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     stackButton.setAlpha(0.0f);
     reverseButton.setAlpha(0.0f);
 
+    // ONCE OFF push-button: invisible hit area, the button itself is drawn in paint() (issue #62)
+    setupButton(onceOffButton, "", juce::Colours::transparentBlack, false);
+    onceOffButton.setAlpha(0.0f);
+
     // Setup sliders
     // Volume slider overlays the OUTPUT LEVEL knob in the image
     volumeSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -99,7 +103,11 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     onceButton.onClick = [this]() {
         audioProcessor.getLooperEngine()->onOnceButtonPressed();
     };
-    
+
+    onceOffButton.onClick = [this]() {
+        audioProcessor.getLooperEngine()->onOnceOffButtonPressed();
+    };
+
     reverseButton.onClick = [this]() {
         audioProcessor.getLooperEngine()->onReverseButtonPressed();
     };
@@ -326,7 +334,9 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     drawLED(g, static_cast<int>(485 * scale), ledY, ledSize, juce::Colours::green, reverseLED);
     drawLED(g, static_cast<int>(579 * scale), ledY, ledSize, juce::Colours::green, stackLED);
     drawLED(g, static_cast<int>(579 * scale), static_cast<int>(27 * scale), ledSize, juce::Colours::orange, slowLED);  // SLOW LED below stack LED
-    
+
+    drawOnceOffButton(g, scale);
+
     // Draw gear icon for settings button
     {
         auto gearBounds = settingsButton.getBounds().toFloat();
@@ -407,7 +417,10 @@ void BoomerangAudioProcessorEditor::resized()
     onceButton.setBounds(scaleRect(baseStartX + baseSpacing * 2, baseButtonY, baseButtonWidth, baseButtonHeight));
     reverseButton.setBounds(scaleRect(baseStartX + baseSpacing * 3, baseButtonY, baseButtonWidth, baseButtonHeight));
     stackButton.setBounds(scaleRect(baseStartX + baseSpacing * 4, baseButtonY, baseButtonWidth, baseButtonHeight));
-    
+
+    // ONCE OFF push-button, legend included, on the bare panel between ONCE and DIRECTION (issue #62)
+    onceOffButton.setBounds(scaleRect(420, 149, 36, 26));
+
     // Settings button (gear icon) - top right corner of the device image
     int gearSize = static_cast<int>(28 * scale);
     settingsButton.setBounds(
@@ -560,6 +573,54 @@ void BoomerangAudioProcessorEditor::drawLED(juce::Graphics& g, int x, int y, int
         g.setColour(colour.withAlpha(0.1f));
         g.fillEllipse(x - size/2, y - size/2, size, size);
     }
+}
+
+// Half-size copy of the panel's ribbed rubber footswitch pads, for ONCE OFF (issue #62)
+// Coordinates are in the 700x200 base image space, scaled to the window
+void BoomerangAudioProcessorEditor::drawOnceOffButton(juce::Graphics& g, float scale)
+{
+    auto s = [scale](float v) { return v * scale; };
+
+    const juce::Point<float> centre(s(438.0f), s(166.0f));  // Bare panel between ONCE and DIRECTION footswitches
+    const bool pressed = onceOffButton.isDown();
+
+    // Shadow under the pad's lower edge, like the footswitches cast on the panel
+    const auto  pad    = juce::Rectangle<float>(s(17.0f), s(14.0f)).withCentre(centre);
+    const float radius = s(3.5f);
+    g.setColour(juce::Colours::black.withAlpha(0.6f));
+    g.fillRoundedRectangle(pad.expanded(s(0.3f)).translated(0.0f, s(0.8f)), radius);
+
+    // Rubber body, lit from above; sinks a little while pressed
+    const auto body = pad.translated(0.0f, pressed ? s(0.5f) : 0.0f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff5e5e5e), body.getX(), body.getY(),
+                                           juce::Colour(0xff363636), body.getX(), body.getBottom(), false));
+    g.fillRoundedRectangle(body, radius);
+
+    // Grooves: dark horizontal ribs across the pad, split down the middle
+    g.setColour(juce::Colour(0xff141414));
+    const int numGrooves = 4;
+    for (int i = 1; i <= numGrooves; ++i)
+    {
+        const float y = body.getY() + body.getHeight() * static_cast<float>(i) / static_cast<float>(numGrooves + 1);
+        g.fillRect(body.getX() + s(1.2f), y - s(0.45f), body.getWidth() - s(2.4f), s(0.9f));
+    }
+    g.fillRect(body.getCentreX() - s(0.4f), body.getY() + s(1.5f), s(0.8f), body.getHeight() - s(3.0f));
+
+    // Rubber rim catching the light
+    g.setColour(juce::Colours::white.withAlpha(0.22f));
+    g.drawRoundedRectangle(body.reduced(s(0.3f)), radius, s(0.6f));
+
+    if (pressed)
+    {
+        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.fillRoundedRectangle(body, radius);
+    }
+
+    // ONCE OFF legend printed like the panel's white text; it reads brighter while Once is armed
+    g.setFont(juce::Font(juce::FontOptions(s(6.0f)).withStyle("Italic")));  // Italic caps, like SLOW / STACK
+    g.setColour(juce::Colour(0xffe8e8e8).withAlpha(onceLED ? 0.95f : 0.45f));
+    g.drawText("ONCE OFF", juce::Rectangle<float>(s(36.0f), s(8.0f)).withCentre({ centre.x, pad.getY() - s(4.5f) }),
+               juce::Justification::centred, false);
 }
 
 void BoomerangAudioProcessorEditor::updateStatusDisplay()
