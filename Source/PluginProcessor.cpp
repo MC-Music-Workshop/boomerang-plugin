@@ -484,7 +484,10 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
     if (xmlState.get() != nullptr)
         if (xmlState->hasTagName(apvts.state.getType()))
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
-    
+
+    // Sessions saved before this setting existed have no property: default on
+    looperEngine->setExtendedFeatures(apvts.state.getProperty(StateIDs::extendedFeatures, true));
+
     // Reset read-only indicator parameters AND engine state to defaults
     // These are state indicators, not persistent settings
     if (auto* slowParam = apvts.getParameter(ParameterIDs::slowMode))
@@ -496,6 +499,13 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
     
     // Reset engine to default state (Normal speed, Once off, etc.)
     looperEngine->resetTransientState();
+}
+
+void BoomerangAudioProcessor::setExtendedFeatures(bool enabled)
+{
+    // Stored on the APVTS state so it's saved with the session, without being a host parameter
+    apvts.state.setProperty(StateIDs::extendedFeatures, enabled, nullptr);
+    looperEngine->setExtendedFeatures(enabled);
 }
 
 //==============================================================================

@@ -335,7 +335,8 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     drawLED(g, static_cast<int>(579 * scale), ledY, ledSize, juce::Colours::green, stackLED);
     drawLED(g, static_cast<int>(579 * scale), static_cast<int>(27 * scale), ledSize, juce::Colours::orange, slowLED);  // SLOW LED below stack LED
 
-    drawOnceOffButton(g, scale);
+    if (onceOffButton.isVisible())
+        drawOnceOffButton(g, scale);
 
     // Draw gear icon for settings button
     {
@@ -488,7 +489,10 @@ void BoomerangAudioProcessorEditor::timerCallback()
     auto thruMuteState = audioProcessor.getLooperEngine()->getThruMuteState();
     bool isThruMuted = (thruMuteState == LooperEngine::ThruMuteState::On);
     thruMuteButton.setToggleState(isThruMuted, juce::dontSendNotification);
-    
+
+    // Extension controls disappear when Extended Features is off (also follows session reloads)
+    onceOffButton.setVisible(audioProcessor.getExtendedFeatures());
+
     // Flash record button when loopCycle parameter is pulsed (issue #51)
     // The Processor now handles detecting loop wraps and pulsing loopCycle
     // We just read the parameter value to sync our visual flash
@@ -690,6 +694,7 @@ void BoomerangAudioProcessorEditor::showSettingsMenu()
         sourceMenu.addItem(inputSourceMenuBase + i, InputSource::names[i], true, i == current);
 
     menu.addSeparator();
+    menu.addItem(3, "Extended Features", true, audioProcessor.getExtendedFeatures());
     menu.addSubMenu("Input Source", sourceMenu);
     
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settingsButton),
@@ -732,6 +737,9 @@ void BoomerangAudioProcessorEditor::showSettingsMenu()
                     }
                     break;
                 }
+                case 3:
+                    audioProcessor.setExtendedFeatures(!audioProcessor.getExtendedFeatures());
+                    break;
                 default:
                     break;
             }
