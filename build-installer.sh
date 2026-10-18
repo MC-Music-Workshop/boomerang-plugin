@@ -229,6 +229,7 @@ if [ "$CAN_SIGN_PKG" = true ] && [ "$CAN_NOTARIZE" = true ]; then
             echo "  ✓ Ticket stapled"
         else
             echo "  ✗ Failed to staple ticket"
+            exit 1
         fi
 
         # Also staple the standalone app in the build dir: the release zip is
@@ -244,6 +245,7 @@ if [ "$CAN_SIGN_PKG" = true ] && [ "$CAN_NOTARIZE" = true ]; then
     else
         echo "  ✗ Notarization failed"
         echo "Check logs with: xcrun notarytool log <submission-id> --apple-id $APPLE_ID --team-id $APPLE_TEAM_ID"
+        exit 1
     fi
 fi
 
