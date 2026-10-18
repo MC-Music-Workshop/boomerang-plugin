@@ -132,6 +132,21 @@ The THRU MUTE switch is also useful when the user wants to play a reverse solo l
 
 The OUTPUT LEVEL roller on the front panel of the Boomerang Phrase Sampler controls the playback volume but has no effect on the through signal. The output level can be adjusted at any time and is not stored in memory. The OUTPUT LEVEL roller is a high quality, sealed potentiometer and is very smooth in operation. The output level can be adjusted from zero to full output and is very useful for balancing the loop with the through signal. The OUTPUT LEVEL roller is also useful for setting the level of the loop signal when the THRU MUTE switch is turned off and only the loop signal is present.
 
+# Stack Latch
+
+Latch mode lets the STACK button switch stacking on and off, so you don't have to hold it down for the whole stack. It's useful when your foot is busy, or for a long fade-out.
+
+**How:** flick the **LATCH** slide switch above the STACK (SPEED) label on the plugin panel, or map a widget to the `stackLatch` parameter. It defaults to off (Momentary) and is saved with your project.
+
+| Mode | While playing |
+|---|---|
+| Off / Momentary (default) | Stacking lasts as long as STACK is held down |
+| LATCH | Press STACK once to start stacking, and press it again to stop |
+
+The switch is a static setting: it only changes when you flip it. It changes how STACK presses work, nothing else. In both modes RECORD (playback carries on) and PLAY/STOP end a stack, the STACK LED is lit while stacking, and STACK still toggles the speed when the unit is idle.
+
+Your controller's STACK button should stay **Momentary**. The plugin turns each press into the on/off toggle, so there's nothing to change on your footswitch or MIDI widget.
+
 # Input Source
 
 The plugin takes a stereo input. Choose how the two input channels feed the looper from the gear menu > **Input Source** (also exposed as the `inputSource` host parameter):
@@ -150,8 +165,8 @@ Routing happens before the looper, so the through signal and the recorded loop b
 The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
 
 - **Input params** — `play`, `record`, `once`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
-- **Settings params** — `volume`, `feedback`, `inputSource`.
-- **State output params** (read-only) — `playState`, `onceState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
+- **Settings params** — `volume`, `feedback`, `inputSource`, `stackLatch`.
+- **State output params** (read-only) — `playState`, `onceState`, `stackState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
 
 ## Buttons should be Momentary
 
@@ -166,7 +181,7 @@ A latching/toggle widget will mis-fire, because every release also counts as a p
 
 A momentary button springs back, so it can't display the latched state itself — exactly like the hardware, where a separate LED shows the state next to the momentary footswitch.
 
-**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
+**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE, `stackState` for STACK). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
 
 ## Bidirectional control support
 

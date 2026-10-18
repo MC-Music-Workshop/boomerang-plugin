@@ -255,11 +255,16 @@ void LooperEngine::onStackButtonPressed()
     {
         startOverdubbing();
     }
+    else if (state == LooperState::Overdubbing && stackLatch.load())
+    {
+        // Latch mode: a second press ends the stack (issue #71)
+        stopOverdubbing();
+    }
     else if (state == LooperState::Stopped)
     {
         toggleSpeedMode();
     }
-    
+
     stateTransitionInProgress.store(false);
 }
 
@@ -269,10 +274,11 @@ void LooperEngine::onStackButtonReleased()
     bool expected = false;
     if (!stateTransitionInProgress.compare_exchange_strong(expected, true))
         return;  // Another thread is already processing a button press
-    
+
     auto state = currentState.load();
-    
-    if (state == LooperState::Overdubbing)
+
+    // Latch mode ignores the release; the next press ends the stack (issue #71)
+    if (state == LooperState::Overdubbing && !stackLatch.load())
     {
         stopOverdubbing();
     }
@@ -354,7 +360,12 @@ void LooperEngine::startPlayback()
 void LooperEngine::stopPlayback()
 {
     auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
-    
+
+    // End any stack first, so the next playback doesn't resume overdubbing
+    // (in Latch mode the stack is usually still running when STOP or Once ends playback - issue #71)
+    if (currentState.load() == LooperState::Overdubbing)
+        stopOverdubbing();
+
     activeSlot.isPlaying.store(false);
     currentState.store(LooperState::Stopped);
 
@@ -377,10 +388,11 @@ void LooperEngine::startOverdubbing()
         activeSlot.isPlaying.store(true);
         currentState.store(LooperState::Overdubbing);
         stackMode.store(StackMode::On);
-        
-        // Notify host of stack mode on
+
+        // Notify host of stack mode on. Use the stackState output, not the stack
+        // input: echoing the input can swallow the pedal's next edge (issue #71)
         if (parameterNotifyCallback)
-            parameterNotifyCallback(ParameterIDs::stack, 1.0f);
+            parameterNotifyCallback(ParameterIDs::stackState, 1.0f);
     }
 }
 
@@ -392,9 +404,9 @@ void LooperEngine::stopOverdubbing()
     currentState.store(LooperState::Playing);
     stackMode.store(StackMode::Off);
     
-    // Notify host of stack mode off
+    // Notify host of stack mode off (stackState output, not stack input - issue #71)
     if (parameterNotifyCallback)
-        parameterNotifyCallback(ParameterIDs::stack, 0.0f);
+        parameterNotifyCallback(ParameterIDs::stackState, 0.0f);
 }
 
 void LooperEngine::toggleThruMute()

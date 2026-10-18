@@ -27,7 +27,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - After committing: `cd build && make -j8` (git hash updates automatically at build time; only PluginEditor.cpp recompiles).
 - Note: Plugins auto-install to system directories when rebuilt via COPY_PLUGIN_AFTER_BUILD.
 - Build installer: `./build-installer.sh` (creates macOS .pkg installer with VST3, AU, and Standalone).
-- Tests: `pluginval --validate build/Boomerang_artefacts/VST3/Boomerang.vst3` (run VST3 compliance tests).
+- Tests: `/Applications/pluginval.app/Contents/MacOS/pluginval --validate "build/Boomerang_artefacts/VST3/Boomerang+.vst3" --strictness-level 5` (VST3 compliance tests, same strictness as CI). Install with `brew install --cask pluginval`; the cask doesn't put `pluginval` on `PATH`.
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
 
 ## Coding Style & Naming Conventions
@@ -96,11 +96,15 @@ Local testing with `act` (requires Docker):
 - Issue #43 (REC LED when stacking) is an enhancement request.
 - Current release: v2.0.0-beta-1 (JUCE port). Beta quality - core functionality stable, polishing phase. Builds shipped: VST3, AU (macOS), Standalone app (macOS); Windows/Linux use VST3. Installation paths: `~/Library/Audio/Plug-Ins/Components`, `~/Library/Audio/Plug-Ins/VST3`. Please file new issues for any problems.
 - releases/ folder is git-ignored; use GitHub Releases for distribution instead.
+- **Invisible (alpha 0) footswitch buttons + `onStateChange`**: on mouse-up, JUCE `Button::mouseUp` flashes a button that was never painted in its down state (`lastStatePainted`) back to `buttonDown` for 100ms. Alpha-0 components are never painted, so every click fires a phantom second press/release through `onStateChange`. Gate press detection on `isMouseButtonDown()` (see the STACK handler, issue #71). `onClick` isn't affected.
+- **Testing the UI without the user's instance**: run a second standalone with isolated settings, `HOME=<tmp dir> "$BOOM_STANDALONE_PATH/Contents/MacOS/Boomerang+" &`, then kill it by PID. Scripted `setState()` / engine calls don't reproduce real mouse behavior (they missed the flash above), so confirm click behavior by hand.
 - Release notes style preference: concise Markdown with top-level title like `v2.0.0-beta-1 (JUCE port)`, sections for What's new, Installation (macOS and Windows/Linux), Known issues, and How to help (link to new issue form). Tone should be direct and instructional.
 
 ## Tech Debt
 
 - **Reusable signing action**: The macOS code signing + notarization logic is duplicated between `boomerang-plugin` and `midi-captain-max`. Extract into a reusable composite action or shared workflow. See `midi-captain-max/.github/workflows/ci.yml` for the canonical pattern. Priority: medium (pay this down before adding a third repo).
+
+- **STACK LATCH vs Extended Features**: STACK LATCH (#71) is a non-hardware feature, but it was built before the Extended Features toggle (branch `extended-features`, #62) merged. Whichever merges second must gate LATCH on it: hide the slide switch and treat `stackLatch` as off when Extended Features is off. Search for `TODO(extended-features)`.
 
 ## Template Substitution
 

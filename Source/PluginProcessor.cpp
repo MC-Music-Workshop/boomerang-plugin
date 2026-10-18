@@ -84,6 +84,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         InputSource::names,
         InputSource::stereo));
 
+    // STACK mode - Latch turns each STACK press into an on/off toggle, so a
+    // momentary footswitch can start and end a stack hands-free (issue #71)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::stackLatch, 2),
+        "Stack Latch",
+        false));  // false = Momentary (default)
+
+    // Stack state indicator - on while stacking (for external STACK LED, issue #71)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::stackState, 2),
+        "Stack State",
+        false));  // read-only state indicator
+
     return layout;
 }
 
@@ -350,6 +363,12 @@ void BoomerangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (!std::isnan(feedbackValue) && !std::isinf(feedbackValue))
             looperEngine->setFeedback(feedbackValue);
     }
+
+    // TODO(extended-features): LATCH isn't on the original hardware. Once the Extended
+    // Features toggle lands (branch extended-features, #62), ignore stackLatch when it's off
+    // (pass false here), like the onceOff param
+    if (auto* latchParam = apvts.getRawParameterValue(ParameterIDs::stackLatch))
+        looperEngine->setStackLatch(latchParam->load() >= 0.5f);
 
     // Route the stereo input pair before the engine, so the dry signal and the
     // recorded loop both follow the selected source (issue #69)
