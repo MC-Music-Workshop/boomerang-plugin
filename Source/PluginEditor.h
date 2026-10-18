@@ -37,6 +37,7 @@ private:
     juce::TextButton stackButton;
     juce::TextButton reverseButton;
     juce::TextButton stackLatchButton;  // Hit area for the MOM | LATCH slide switch (issue #71)
+    juce::TextButton onceOffButton;  // Hit area for the ONCE OFF push-button (issue #62)
 
     juce::Slider volumeSlider;
     
@@ -99,6 +100,7 @@ private:
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
     void drawStackLatchSwitch(juce::Graphics& g, float scale);
+    void drawOnceOffButton(juce::Graphics& g, float scale);
     void showSettingsMenu();
     static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu
 

@@ -241,6 +241,21 @@ void LooperEngine::onOnceButtonPressed()
     stateTransitionInProgress.store(false);
 }
 
+// Cancels Once mode so the loop keeps cycling instead of stopping at its end (issue #62).
+// Not on the original hardware: ONCE itself restarts the loop, so it can't turn Once off.
+void LooperEngine::onOnceOffButtonPressed()
+{
+    // Thread safety: Only allow one button press at a time
+    bool expected = false;
+    if (!stateTransitionInProgress.compare_exchange_strong(expected, true))
+        return;  // Another thread is already processing a button press
+
+    if (onceMode.load() == OnceMode::On)
+        setOnceMode(OnceMode::Off);
+
+    stateTransitionInProgress.store(false);
+}
+
 // Momentary behavior - engaged while pressed
 void LooperEngine::onStackButtonPressed()
 {
@@ -557,7 +572,6 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
     float speed = (speedMode.load() == SpeedMode::Half) ? 0.5f : 1.0f;
     auto loopDirection = loopMode.load();
     auto thruMuteState = thruMute.load();
-    auto once = onceMode.load();
     int slotLength = slot.length.load();
     float volume = outputVolume.load();  // Apply volume to loop signal only (issue #44)
     
@@ -608,10 +622,11 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
             loopWrapped.store(true);
         
         // Once mode: request stop via flag instead of direct state write (issue #38)
-        if (once == OnceMode::On && wrapped)
+        // Read onceMode live, so a ONCE OFF that lands mid-block still keeps the loop going (issue #62)
+        if (wrapped && onceMode.load() == OnceMode::On)
         {
             stopPlayback();
-            shouldDisableOnce.store(true);  // UI timer will call toggleOnceMode()
+            shouldDisableOnce.store(true);  // Cleared by processAudioThreadRequests()
             break;
         }
     }
@@ -629,7 +644,6 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
     const int inputChannels = buffer.getNumChannels();
     float speed = (speedMode.load() == SpeedMode::Half) ? 0.5f : 1.0f;
     auto thruMuteState = thruMute.load();
-    auto once = onceMode.load();
     int slotLength = slot.length.load();
     float volume = outputVolume.load();  // Apply volume to loop output only (issue #44)
     
@@ -672,10 +686,11 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
             loopWrapped.store(true);
 
         // Once mode: request stop via flag instead of direct state write (issue #38)
-        if (once == OnceMode::On && wrapped)
+        // Read onceMode live, so a ONCE OFF that lands mid-block still keeps the loop going (issue #62)
+        if (wrapped && onceMode.load() == OnceMode::On)
         {
             stopPlayback();
-            shouldDisableOnce.store(true);  // UI timer will call toggleOnceMode()
+            shouldDisableOnce.store(true);  // Cleared by processAudioThreadRequests()
             break;
         }
     }

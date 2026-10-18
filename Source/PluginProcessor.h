@@ -24,6 +24,7 @@ namespace ParameterIDs
     const juce::String inputSource = "inputSource"; // 2x2 input routing (issue #69)
     const juce::String stackLatch  = "stackLatch";  // STACK mode: Momentary (off) or Latch (on) (issue #71)
     const juce::String stackState  = "stackState";  // On while stacking (for external STACK LED, issue #71)
+    const juce::String onceOff     = "onceOff";     // Cancels Once mode, loop keeps playing (issue #62)
 }
 
 // Choices for the inputSource parameter, in parameter index order

@@ -132,6 +132,12 @@ The THRU MUTE switch is also useful when the user wants to play a reverse solo l
 
 The OUTPUT LEVEL roller on the front panel of the Boomerang Phrase Sampler controls the playback volume but has no effect on the through signal. The output level can be adjusted at any time and is not stored in memory. The OUTPUT LEVEL roller is a high quality, sealed potentiometer and is very smooth in operation. The output level can be adjusted from zero to full output and is very useful for balancing the loop with the through signal. The OUTPUT LEVEL roller is also useful for setting the level of the loop signal when the THRU MUTE switch is turned off and only the loop signal is present.
 
+# ONCE OFF
+
+The original hardware has no way to change your mind about ONCE: pressing it again restarts the loop. The plugin adds a small **ONCE OFF** button, next to the ONCE footswitch, that cancels Once mode so the loop keeps cycling instead of stopping at its end. The ONCE LED goes out, and the ONCE OFF legend is lit while there is a Once to cancel.
+
+It works during normal playback and while stacking. When Once mode is off, ONCE OFF does nothing. It is also exposed as the `onceOff` host parameter, so you can map it to a footswitch (configure the widget as **Momentary**, like the others).
+
 # Stack Latch
 
 Latch mode lets the STACK button switch stacking on and off, so you don't have to hold it down for the whole stack. It's useful when your foot is busy, or for a long fade-out.
@@ -164,13 +170,13 @@ Routing happens before the looper, so the through signal and the recorded loop b
 
 The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
 
-- **Input params** — `play`, `record`, `once`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
+- **Input params** — `play`, `record`, `once`, `onceOff`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
 - **Settings params** — `volume`, `feedback`, `inputSource`, `stackLatch`.
 - **State output params** (read-only) — `playState`, `onceState`, `stackState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
 
 ## Buttons should be Momentary
 
-The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `record`, `stack`) as **Momentary**:
+The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `onceOff`, `record`, `stack`) as **Momentary**:
 
 - Each press sends one edge, which the plugin treats as one button press and toggles its own state.
 - The release edge is ignored, so a press can't double-fire. (For example, pressing PLAY/STOP during recording stops recording without then starting playback.)

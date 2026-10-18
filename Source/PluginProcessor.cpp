@@ -97,6 +97,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         "Stack State",
         false));  // read-only state indicator
 
+    // ONCE OFF - cancels Once mode so the loop keeps cycling (issue #62)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::onceOff, 2),
+        "Once Off",
+        false));  // momentary button
+
     return layout;
 }
 
@@ -148,6 +154,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
     apvts.addParameterListener(ParameterIDs::record, this);
     apvts.addParameterListener(ParameterIDs::play, this);
     apvts.addParameterListener(ParameterIDs::once, this);
+    apvts.addParameterListener(ParameterIDs::onceOff, this);
     apvts.addParameterListener(ParameterIDs::stack, this);
     apvts.addParameterListener(ParameterIDs::reverse, this);
 }
@@ -159,6 +166,7 @@ BoomerangAudioProcessor::~BoomerangAudioProcessor()
     apvts.removeParameterListener(ParameterIDs::record, this);
     apvts.removeParameterListener(ParameterIDs::play, this);
     apvts.removeParameterListener(ParameterIDs::once, this);
+    apvts.removeParameterListener(ParameterIDs::onceOff, this);
     apvts.removeParameterListener(ParameterIDs::stack, this);
     apvts.removeParameterListener(ParameterIDs::reverse, this);
 }
@@ -205,6 +213,11 @@ void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, 
     {
         if (buttonPressed)
             looperEngine->onOnceButtonPressed();
+    }
+    else if (parameterID == ParameterIDs::onceOff)
+    {
+        if (buttonPressed)
+            looperEngine->onOnceOffButtonPressed();
     }
     // Stack button - needs both press and release events
     else if (parameterID == ParameterIDs::stack)
