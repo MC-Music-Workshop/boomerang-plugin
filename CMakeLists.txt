@@ -186,14 +186,19 @@ find_program(PLUGINVAL pluginval PATHS
 
 if(PLUGINVAL)
     message(STATUS "Found pluginval: ${PLUGINVAL}")
+    # Same flags as the CI validate job, so a local pass means CI should pass too
     add_custom_target(validate
-        COMMAND ${PLUGINVAL} --validate-in-process --verbose
-                ${CMAKE_BINARY_DIR}/Boomerang_artefacts/VST3/Boomerang.vst3
-        DEPENDS Boomerang
+        COMMAND ${PLUGINVAL} --validate
+                "${CMAKE_BINARY_DIR}/Boomerang_artefacts/VST3/Boomerang+.vst3"
+                --strictness-level 5
+        DEPENDS Boomerang_VST3
         COMMENT "Validating plugin with pluginval"
     )
 else()
-    message(STATUS "pluginval not found - 'make validate' target unavailable")
-    message(STATUS "Download: https://github.com/Tracktion/pluginval/releases")
+    message(STATUS "pluginval not found - 'make validate' will skip validation")
+    # Placeholder target so build.sh can always call it
+    add_custom_target(validate
+        COMMAND ${CMAKE_COMMAND} -E echo "pluginval not found, skipping. Install: brew install --cask pluginval, then re-run cmake"
+    )
 endif()
 
