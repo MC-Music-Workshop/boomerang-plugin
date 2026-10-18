@@ -85,7 +85,8 @@ public:
     void onRecordButtonPressed();
     void onPlayButtonPressed();
     void onOnceButtonPressed();
-    void onStackButtonPressed();      // Momentary: called when pressed
+    void onOnceOffButtonPressed();    // Cancels Once mode, loop keeps playing (issue #62)
+    void onStackButtonPressed();     // Momentary: called when pressed
     void onStackButtonReleased();     // Momentary: called when released
     void onReverseButtonPressed();
 
@@ -125,9 +126,11 @@ public:
     void processAudioThreadRequests()
     {
         // Check if audio thread requested Once mode disable
+        // Set rather than toggle: a ONCE OFF between the stop and this call
+        // must not flip Once back on (issue #62)
         if (shouldDisableOnce.exchange(false))
         {
-            toggleOnceMode();
+            setOnceMode(OnceMode::Off);
         }
     }
     
