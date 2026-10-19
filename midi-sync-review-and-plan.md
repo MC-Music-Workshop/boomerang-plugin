@@ -7,6 +7,29 @@
 
 ---
 
+## Terminology: Host Tempo Sync vs MIDI Clock
+
+This branch (`host-tempo-sync`) implements **host tempo sync**. Issue #20 is titled "MIDI Sync" because that is what users searched for, but the two are different mechanisms:
+
+| | Host tempo sync | MIDI clock |
+|---|---|---|
+| Source | DAW, via JUCE `AudioPlayHead` | A device sending 24 ticks per quarter note plus Start/Stop/Continue |
+| Delivered as | Structured values on every `processBlock`: BPM, time signature, play state, bar/beat position | MIDI bytes the receiver has to count |
+| Accuracy | Sample-accurate, exact position | Tempo is estimated from tick intervals, so it jitters and drifts |
+| Bar alignment | Known at any moment | Only from a Start message; unknown if joining mid-song |
+| Availability in a plugin | Always, in a DAW | Many hosts and plugin formats don't pass clock bytes through |
+
+Issue #20's stated goal is "sync the loop length to a MIDI clock, like the DAW tempo", which host sync covers.
+
+MIDI clock matters only when:
+
+- running standalone, where there is no host and no `AudioPlayHead` data
+- the clock master is hardware (drum machine, sequencer) rather than the DAW, and the plugin actually receives the clock bytes
+
+**Design consequence:** keep the quantize logic source-agnostic. The loop engine needs only "BPM plus bar position". Host sync supplies that first; MIDI clock can be added later as a second source behind the same interface. Before building it, ask the issue author whether they run in a DAW or standalone, and whether the clock comes from the DAW or from hardware.
+
+---
+
 ## Part 1: Review of the Existing Plan
 
 ### What the Plan Gets Right
