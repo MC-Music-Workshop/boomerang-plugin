@@ -157,6 +157,14 @@ The switch is a static setting: it only changes when you flip it. It changes how
 
 Your controller's STACK button should stay **Momentary**. The plugin turns each press into the on/off toggle, so there's nothing to change on your footswitch or MIDI widget.
 
+## SLOW
+
+On the original hardware, the only way to change the speed is to press STACK while the unit is idle. The plugin adds a small **SLOW** button, between the DIRECTION and STACK (SPEED) legends, that toggles between full and half speed on its own.
+
+Unlike STACK, it works at any time, not only when the unit is idle. Press it during playback or while stacking to drop the loop an octave (or bring it back up) without stopping. The SLOW LED shows the current speed whichever control changed it, and the SLOW legend is lit at half speed. STACK still toggles the speed when the unit is idle.
+
+It is also exposed as the `slow` host parameter, so you can map it to a footswitch (configure the widget as **Momentary**, like the others). To show the speed on your controller, map a display widget to the `slowMode` state output.
+
 # Input Source
 
 The plugin takes a stereo input. Choose how the two input channels feed the looper from the gear menu > **Input Source** (also exposed as the `inputSource` host parameter):
@@ -174,13 +182,13 @@ Routing happens before the looper, so the through signal and the recorded loop b
 
 The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
 
-- **Input params** — `play`, `record`, `once`, `onceOff`, `stack`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
+- **Input params** — `play`, `record`, `once`, `onceOff`, `stack`, `slow`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
 - **Settings params** — `volume`, `feedback`, `inputSource`, `stackLatch`.
 - **State output params** (read-only) — `playState`, `onceState`, `stackState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
 
 ## Buttons should be Momentary
 
-The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `onceOff`, `record`, `stack`) as **Momentary**:
+The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `onceOff`, `record`, `stack`, `slow`) as **Momentary**:
 
 - Each press sends one edge, which the plugin treats as one button press and toggles its own state.
 - The release edge is ignored, so a press can't double-fire. (For example, pressing PLAY/STOP during recording stops recording without then starting playback.)
@@ -191,7 +199,7 @@ A latching/toggle widget will mis-fire, because every release also counts as a p
 
 A momentary button springs back, so it can't display the latched state itself — exactly like the hardware, where a separate LED shows the state next to the momentary footswitch.
 
-**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE, `stackState` for STACK). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
+**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE, `stackState` for STACK, `slowMode` for SLOW). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
 
 ## Bidirectional control support
 

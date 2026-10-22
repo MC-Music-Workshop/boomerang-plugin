@@ -25,6 +25,7 @@ namespace ParameterIDs
     const juce::String stackLatch  = "stackLatch";  // STACK mode: Momentary (off) or Latch (on) (issue #71)
     const juce::String stackState  = "stackState";  // On while stacking (for external STACK LED, issue #71)
     const juce::String onceOff     = "onceOff";     // Cancels Once mode, loop keeps playing (issue #62)
+    const juce::String slow        = "slow";        // Toggles full/half speed, apart from STACK (issue #78)
 }
 
 // Plugin state properties that aren't host parameters (saved with the session)

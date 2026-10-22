@@ -103,6 +103,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         "Once Off",
         false));  // momentary button
 
+    // SLOW - toggles full/half speed in any state, apart from STACK (issue #78)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::slow, 2),
+        "Slow",
+        false));  // momentary button
+
     return layout;
 }
 
@@ -155,6 +161,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
     apvts.addParameterListener(ParameterIDs::play, this);
     apvts.addParameterListener(ParameterIDs::once, this);
     apvts.addParameterListener(ParameterIDs::onceOff, this);
+    apvts.addParameterListener(ParameterIDs::slow, this);
     apvts.addParameterListener(ParameterIDs::stack, this);
     apvts.addParameterListener(ParameterIDs::reverse, this);
 }
@@ -167,6 +174,7 @@ BoomerangAudioProcessor::~BoomerangAudioProcessor()
     apvts.removeParameterListener(ParameterIDs::play, this);
     apvts.removeParameterListener(ParameterIDs::once, this);
     apvts.removeParameterListener(ParameterIDs::onceOff, this);
+    apvts.removeParameterListener(ParameterIDs::slow, this);
     apvts.removeParameterListener(ParameterIDs::stack, this);
     apvts.removeParameterListener(ParameterIDs::reverse, this);
 }
@@ -218,6 +226,11 @@ void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, 
     {
         if (buttonPressed)
             looperEngine->onOnceOffButtonPressed();
+    }
+    else if (parameterID == ParameterIDs::slow)
+    {
+        if (buttonPressed)
+            looperEngine->onSlowButtonPressed();
     }
     // Stack button - needs both press and release events
     else if (parameterID == ParameterIDs::stack)

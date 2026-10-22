@@ -86,6 +86,7 @@ public:
     void onPlayButtonPressed();
     void onOnceButtonPressed();
     void onOnceOffButtonPressed();    // Cancels Once mode, loop keeps playing (issue #62)
+    void onSlowButtonPressed();       // Toggles full/half speed in any state (issue #78)
     void onStackButtonPressed();      // Momentary: called when pressed (latch: toggles the stack)
     void onStackButtonReleased();     // Momentary: called when released (latch: ignored)
     void onReverseButtonPressed();
