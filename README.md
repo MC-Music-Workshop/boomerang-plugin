@@ -132,6 +132,17 @@ The THRU MUTE switch is also useful when the user wants to play a reverse solo l
 
 The OUTPUT LEVEL roller on the front panel of the Boomerang Phrase Sampler controls the playback volume but has no effect on the through signal. The output level can be adjusted at any time and is not stored in memory. The OUTPUT LEVEL roller is a high quality, sealed potentiometer and is very smooth in operation. The output level can be adjusted from zero to full output and is very useful for balancing the loop with the through signal. The OUTPUT LEVEL roller is also useful for setting the level of the loop signal when the THRU MUTE switch is turned off and only the loop signal is present.
 
+# Skins
+
+The plugin has two looks. Pick one in the gear menu > **Skin**; the choice is saved with your session.
+
+| Skin | Look |
+|---|---|
+| Modern (default) | A drawn dark faceplate with colour-coded LEDs and a THRU MUTE LED |
+| Classic | A photo of the original hardware's faceplate |
+
+Both skins have the same controls and behave identically.
+
 # Extended Features
 
 The plugin adds a few controls the original hardware doesn't have, styled to blend into the panel. They're on by default. For a faithful hardware experience, turn them off in the gear menu > **Extended Features** (saved with your session). When off, the controls disappear and their host parameters are ignored.
@@ -146,7 +157,7 @@ It works during normal playback and while stacking. When Once mode is off, ONCE 
 
 Latch mode lets the STACK button switch stacking on and off, so you don't have to hold it down for the whole stack. It's useful when your foot is busy, or for a long fade-out.
 
-**How:** flick the **LATCH** slide switch above the STACK (SPEED) label on the plugin panel, or map a widget to the `stackLatch` parameter. It defaults to off (Momentary) and is saved with your project.
+**How:** flick the **LATCH** slide switch next to the STACK footswitch on the plugin panel, or map a widget to the `stackLatch` parameter. It defaults to off (Momentary) and is saved with your project.
 
 | Mode | While playing |
 |---|---|
@@ -159,7 +170,7 @@ Your controller's STACK button should stay **Momentary**. The plugin turns each 
 
 ## SLOW
 
-On the original hardware, the only way to change the speed is to press STACK while the unit is idle. The plugin adds a small **SLOW** button, between the DIRECTION and STACK (SPEED) legends, that toggles between full and half speed on its own.
+On the original hardware, the only way to change the speed is to press STACK while the unit is idle. The plugin adds a small **SLOW** button, between the DIRECTION and STACK footswitches, that toggles between full and half speed on its own.
 
 Unlike STACK, it works at any time, not only when the unit is idle. Press it during playback or while stacking to drop the loop an octave (or bring it back up) without stopping. The SLOW LED shows the current speed whichever control changed it, and the SLOW legend is lit at half speed. STACK still toggles the speed when the unit is idle.
 
