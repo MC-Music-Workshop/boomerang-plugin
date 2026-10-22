@@ -32,6 +32,7 @@ namespace ParameterIDs
 namespace StateIDs
 {
     const juce::Identifier extendedFeatures { "extendedFeatures" };  // Non-hardware features on/off
+    const juce::Identifier skin             { "skin" };              // Editor look: index into Skins (0 = Modern)
 }
 
 // Choices for the inputSource parameter, in parameter index order

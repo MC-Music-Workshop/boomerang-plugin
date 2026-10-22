@@ -4,6 +4,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_graphics/juce_graphics.h>
 #include "PluginProcessor.h"
+#include "Skin.h"
 
 //==============================================================================
 /**
@@ -52,8 +53,9 @@ private:
     juce::ProgressBar progressBar;
     double progressValue = 0.0;
     
-    // Background image
-    juce::Image backgroundImage;
+    // Active skin (background image + control layout + palette)
+    const Skin* skin      = nullptr;
+    int         skinIndex = 0;
     
     // LED states
     bool recordLED  = false;
@@ -98,13 +100,15 @@ private:
     bool prevReverseDown   = false;
 
     void setupButton(juce::TextButton& button, const juce::String& text, juce::Colour colour, bool isToggle = false);
+    void setSkin(int index);
     void updateStatusDisplay();
     void drawLED(juce::Graphics& g, int x, int y, int size, juce::Colour colour, bool isLit);
     void drawStackLatchSwitch(juce::Graphics& g, float scale);
     void drawMiniButton(juce::Graphics& g, float scale, const juce::Button& button,
-                        juce::Point<float> centre, const juce::String& legend, bool legendLit);
+                        juce::Rectangle<float> basePad, const juce::String& legend, bool legendLit);
     void showSettingsMenu();
     static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu
+    static constexpr int skinMenuBase        = 200;  // Menu item IDs for the Skin submenu
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BoomerangAudioProcessorEditor)
 };
