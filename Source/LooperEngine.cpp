@@ -256,6 +256,22 @@ void LooperEngine::onOnceOffButtonPressed()
     stateTransitionInProgress.store(false);
 }
 
+// Toggles full/half speed without going through STACK, so it also works while
+// playing or stacking for an instant octave shift (issue #78).
+// Not on the original hardware, where only STACK while stopped changes the speed.
+void LooperEngine::onSlowButtonPressed()
+{
+    // Thread safety: Only allow one button press at a time
+    bool expected = false;
+    if (!stateTransitionInProgress.compare_exchange_strong(expected, true))
+        return;  // Another thread is already processing a button press
+
+    if (extendedFeatures.load())
+        toggleSpeedMode();
+
+    stateTransitionInProgress.store(false);
+}
+
 // Momentary behavior - engaged while pressed
 void LooperEngine::onStackButtonPressed()
 {

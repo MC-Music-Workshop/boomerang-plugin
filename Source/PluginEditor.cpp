@@ -56,6 +56,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
     setupButton(onceOffButton, "", juce::Colours::transparentBlack, false);
     onceOffButton.setAlpha(0.0f);
 
+    // SLOW push-button: invisible hit area, the button itself is drawn in paint() (issue #78)
+    setupButton(slowButton, "", juce::Colours::transparentBlack, false);
+    slowButton.setAlpha(0.0f);
+
     // Setup sliders
     // Volume slider overlays the OUTPUT LEVEL knob in the image
     volumeSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -113,6 +117,10 @@ BoomerangAudioProcessorEditor::BoomerangAudioProcessorEditor (BoomerangAudioProc
 
     onceOffButton.onClick = [this]() {
         audioProcessor.getLooperEngine()->onOnceOffButtonPressed();
+    };
+
+    slowButton.onClick = [this]() {
+        audioProcessor.getLooperEngine()->onSlowButtonPressed();
     };
 
     reverseButton.onClick = [this]() {
@@ -347,8 +355,11 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
 
     if (stackLatchButton.isVisible())
         drawStackLatchSwitch(g, scale);
+    // Legends read brighter while there's a Once to cancel / while at half speed
     if (onceOffButton.isVisible())
-        drawOnceOffButton(g, scale);
+        drawMiniButton(g, scale, onceOffButton, { 438.0f, 166.0f }, "ONCE OFF", onceLED);  // Between ONCE and DIRECTION
+    if (slowButton.isVisible())
+        drawMiniButton(g, scale, slowButton,    { 539.0f, 141.0f }, "SLOW",     slowLED);  // Between DIRECTION and STACK (SPEED) legends
 
     // Draw gear icon for settings button
     {
@@ -437,6 +448,9 @@ void BoomerangAudioProcessorEditor::resized()
     // ONCE OFF push-button, legend included, on the bare panel between ONCE and DIRECTION (issue #62)
     onceOffButton.setBounds(scaleRect(420, 149, 36, 26));
 
+    // SLOW push-button, legend included, on the bare panel between the DIRECTION and STACK (SPEED) legends (issue #78)
+    slowButton.setBounds(scaleRect(526, 124, 26, 26));
+
     // Settings button (gear icon) - top right corner of the device image
     int gearSize = static_cast<int>(28 * scale);
     settingsButton.setBounds(
@@ -512,6 +526,7 @@ void BoomerangAudioProcessorEditor::timerCallback()
     // Extension controls disappear when Extended Features is off (also follows session reloads)
     onceOffButton.setVisible(audioProcessor.getExtendedFeatures());
     stackLatchButton.setVisible(audioProcessor.getExtendedFeatures());
+    slowButton.setVisible(audioProcessor.getExtendedFeatures());
 
     // Flash record button when loopCycle parameter is pulsed (issue #51)
     // The Processor now handles detecting loop wraps and pulsing loopCycle
@@ -652,14 +667,15 @@ void BoomerangAudioProcessorEditor::drawStackLatchSwitch(juce::Graphics& g, floa
                juce::Justification::centredLeft, false);
 }
 
-// Half-size copy of the panel's ribbed rubber footswitch pads, for ONCE OFF (issue #62)
-// Coordinates are in the 700x200 base image space, scaled to the window
-void BoomerangAudioProcessorEditor::drawOnceOffButton(juce::Graphics& g, float scale)
+// Half-size copy of the panel's ribbed rubber footswitch pads, for ONCE OFF (issue #62) and SLOW (issue #78)
+// baseCentre is the pad centre in the 700x200 base image space, scaled to the window
+void BoomerangAudioProcessorEditor::drawMiniButton(juce::Graphics& g, float scale, const juce::Button& button,
+                                                   juce::Point<float> baseCentre, const juce::String& legend, bool legendLit)
 {
     auto s = [scale](float v) { return v * scale; };
 
-    const juce::Point<float> centre(s(438.0f), s(166.0f));  // Bare panel between ONCE and DIRECTION footswitches
-    const bool pressed = onceOffButton.isDown();
+    const auto centre  = baseCentre * scale;
+    const bool pressed = button.isDown();
 
     // Shadow under the pad's lower edge, like the footswitches cast on the panel
     const auto  pad    = juce::Rectangle<float>(s(17.0f), s(14.0f)).withCentre(centre);
@@ -693,10 +709,10 @@ void BoomerangAudioProcessorEditor::drawOnceOffButton(juce::Graphics& g, float s
         g.fillRoundedRectangle(body, radius);
     }
 
-    // ONCE OFF legend printed like the panel's white text; it reads brighter while Once is armed
+    // Legend printed like the panel's white text; it reads brighter while lit
     g.setFont(juce::Font(juce::FontOptions(s(6.0f)).withStyle("Italic")));  // Italic caps, like SLOW / STACK
-    g.setColour(juce::Colour(0xffe8e8e8).withAlpha(onceLED ? 0.95f : 0.45f));
-    g.drawText("ONCE OFF", juce::Rectangle<float>(s(36.0f), s(8.0f)).withCentre({ centre.x, pad.getY() - s(4.5f) }),
+    g.setColour(juce::Colour(0xffe8e8e8).withAlpha(legendLit ? 0.95f : 0.45f));
+    g.drawText(legend, juce::Rectangle<float>(s(36.0f), s(8.0f)).withCentre({ centre.x, pad.getY() - s(4.5f) }),
                juce::Justification::centred, false);
 }
 
