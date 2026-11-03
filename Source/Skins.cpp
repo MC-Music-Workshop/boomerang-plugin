@@ -28,7 +28,7 @@ static Skin makeClassicSkin()
   s.italicLegends = true;  // Italic caps, like SLOW / STACK
 
   s.hasVolumeRoller = true;
-  s.rollerWindow    = { 104.0f, 71.0f, 54.0f, 40.0f };  // Drum opening in the photo
+  s.rollerWindow    = { 104.0f, 71.0f, 51.0f, 40.0f };  // Drum opening in the photo
   s.rollerScaleX    = { 112.0f, 147.0f };               // 0 and 10 ticks below it
 
   s.ledColours.fill (juce::Colours::green);

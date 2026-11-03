@@ -8,8 +8,8 @@ namespace Roller
     constexpr float visibleHalfAngle = 1.22f;  // the window shows the drum's front ±70°
     constexpr float dotSpacing       = 8.5f;   // between dots, along the drum surface
     constexpr float dotSlope         = 0.35f;  // each dot sits this much right per unit further round
-    constexpr float dotSize          = 4.5f;
-    constexpr float knurlPitch       = 8.0f;
+    constexpr float dotSize          = 5.5f;
+    constexpr float knurlPitch       = 6.5f;
 
     // Surface rolled past the window across the full level range: just enough for the
     // dot line's exit point to sweep the printed 0-10 scale once
@@ -838,7 +838,7 @@ void BoomerangAudioProcessorEditor::drawVolumeRoller(juce::Graphics& g, float sc
     const int firstGroove = static_cast<int>(std::floor((rolled - arc - win.getWidth()) / Roller::knurlPitch));
     const int lastGroove  = static_cast<int>(std::ceil ((rolled + arc + win.getWidth()) / Roller::knurlPitch));
 
-    g.setColour(juce::Colour(0xff5c5c5c));
+    g.setColour(juce::Colour(0xff5e5e5e));
     for (int n = firstGroove; n <= lastGroove; ++n)
     {
         for (float dir : { 1.0f, -1.0f })
@@ -853,7 +853,7 @@ void BoomerangAudioProcessorEditor::drawVolumeRoller(juce::Graphics& g, float sc
                 if (i == 0) groove.startNewSubPath(p);
                 else        groove.lineTo(p);
             }
-            g.strokePath(groove, juce::PathStrokeType(0.7f));
+            g.strokePath(groove, juce::PathStrokeType(1.0f));
         }
     }
 
@@ -867,14 +867,15 @@ void BoomerangAudioProcessorEditor::drawVolumeRoller(juce::Graphics& g, float sc
         const float facing = std::cos(a);
         const juce::Point<float> centre(lineX0 + Roller::dotSlope * u, win.getCentreY() + radius * std::sin(a));
 
-        g.setColour(juce::Colour(0xfff2f0e6).withAlpha(0.4f + 0.6f * facing));
+        g.setColour(juce::Colour(0xfff2f0e6).withAlpha(0.5f + 0.5f * facing));
         g.fillEllipse(juce::Rectangle<float>(Roller::dotSize, Roller::dotSize * facing).withCentre(centre));
     }
 
     // Cylinder shading: top and bottom turn away into shadow; lit from just above centre
-    juce::ColourGradient shade(juce::Colours::black.withAlpha(0.85f), 0.0f, win.getY(),
-                               juce::Colours::black.withAlpha(0.85f), 0.0f, win.getBottom(), false);
-    shade.addColour(0.45, juce::Colours::transparentBlack);
+    juce::ColourGradient shade(juce::Colours::black.withAlpha(0.7f), 0.0f, win.getY(),
+                               juce::Colours::black.withAlpha(0.6f), 0.0f, win.getBottom(), false);
+    shade.addColour(0.3, juce::Colours::transparentBlack);
+    shade.addColour(0.7, juce::Colours::transparentBlack);
     g.setGradientFill(shade);
     g.fillRect(win);
 }
