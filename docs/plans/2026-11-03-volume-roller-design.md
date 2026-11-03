@@ -24,9 +24,9 @@ On the Classic skin, replace the stock slider that sits over the photo's OUTPUT 
 
 ## Geometry (base 700×200 units, measured from `img/boomerang.jpg`)
 
-- Drum opening: `{ 104, 71, 54, 40 }`. The 0 and 10 ticks are at x = 112 and x = 147.
+- Drum opening: `{ 104, 71, 51, 40 }`, which leaves the photo's bright right-hand frame bar visible. The 0 and 10 ticks are at x = 112 and x = 147.
 - Photo dots: about (125,75), (127,81), (129,89), (133,98), (136,107). They're about 8.5 apart along the surface, each stepping about 0.35 right per unit down.
-- Knurl: a diamond cross-hatch with a pitch of about 8.
+- Knurl: a diamond cross-hatch with a pitch of about 6.5 (tuned by eye; 8 read too coarse).
 
 ### Model
 
