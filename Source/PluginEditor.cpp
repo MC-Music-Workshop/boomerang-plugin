@@ -2,6 +2,20 @@
 #include "PluginEditor.h"
 #include "git_version.h"  // Generated at build time with current git hash
 
+// OUTPUT LEVEL roller geometry (issue #82), in base 700x200 units, measured off the faceplate photo
+namespace Roller
+{
+    constexpr float visibleHalfAngle = 1.22f;  // the window shows the drum's front ±70°
+    constexpr float dotSpacing       = 8.5f;   // between dots, along the drum surface
+    constexpr float dotSlope         = 0.35f;  // each dot sits this much right per unit further round
+    constexpr float dotSize          = 5.5f;
+    constexpr float knurlPitch       = 6.5f;
+
+    // Surface rolled past the window across the full level range: just enough for the
+    // dot line's exit point to sweep the printed 0-10 scale once
+    inline float travel(const Skin& s) { return s.rollerScaleX.getLength() / dotSlope; }
+}
+
 // Extension control legends sit just outside their control; hit areas include them
 static juce::Rectangle<float> miniButtonLegendArea(juce::Rectangle<float> pad)
 {
@@ -338,7 +352,8 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     
     // Volume thumb overlay - small box that follows the slider position
     // (skins that draw their own fader show the thumb at all times)
-    if (skin->alwaysShowVolumeThumb || volumeSlider.isMouseOver() || volumeSlider.isMouseButtonDown())
+    if (! skin->hasVolumeRoller
+        && (skin->alwaysShowVolumeThumb || volumeSlider.isMouseOver() || volumeSlider.isMouseButtonDown()))
     {
         auto sliderBounds = volumeSlider.getBounds();
         double proportion = (volumeSlider.getValue() - volumeSlider.getMinimum()) / 
@@ -382,6 +397,9 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
         auto thruPos = scaled(skin->thruMuteLedPosition);
         drawLED(g, thruPos.x, thruPos.y, ledSize, skin->thruMuteLedColour, thruMuteButton.getToggleState());
     }
+
+    if (skin->hasVolumeRoller)
+        drawVolumeRoller(g, scale, static_cast<float>(volumeSlider.valueToProportionOfLength(volumeSlider.getValue())));
 
     if (stackLatchButton.isVisible())
         drawStackLatchSwitch(g, scale);
@@ -458,6 +476,10 @@ void BoomerangAudioProcessorEditor::resized()
     // Volume slider overlays the OUTPUT LEVEL control
     // Wide clickable area to emulate rolling the volume knob
     volumeSlider.setBounds(scaleRect(skin->volumeRect));
+
+    // Rolling the full range takes as many pixels as the drum surface travels, so it tracks the pointer
+    if (skin->hasVolumeRoller)
+        volumeSlider.setMouseDragSensitivity(juce::jmax(1, juce::roundToInt(Roller::travel(*skin) * scale)));
 
     // Main foot switches
     recordButton.setBounds (scaleRect(skin->footswitchRects[0]));
@@ -639,8 +661,8 @@ void BoomerangAudioProcessorEditor::setSkin(int index)
     skinIndex = index;
     skin      = &Skins::get(index);
 
-    // Procedural skins draw their own fader, so hide the stock slider chrome there
-    if (skin->alwaysShowVolumeThumb)
+    // Procedural skins draw their own fader and roller skins their own drum, so hide the stock slider chrome there
+    if (skin->alwaysShowVolumeThumb || skin->hasVolumeRoller)
     {
         volumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
         volumeSlider.setColour(juce::Slider::trackColourId,      juce::Colours::transparentBlack);
@@ -652,6 +674,9 @@ void BoomerangAudioProcessorEditor::setSkin(int index)
         volumeSlider.removeColour(juce::Slider::trackColourId);
         volumeSlider.removeColour(juce::Slider::thumbColourId);
     }
+
+    // A thumbwheel moves with your finger: clicking it shouldn't jump the level (issue #82)
+    volumeSlider.setSliderSnapsToMousePosition(! skin->hasVolumeRoller);
 
     resized();  // re-place controls on the new skin's layout
     repaint();
@@ -784,6 +809,75 @@ void BoomerangAudioProcessorEditor::drawMiniButton(juce::Graphics& g, float scal
         g.setColour(juce::Colours::black.withAlpha(0.25f));
         g.fillRoundedRectangle(body, radius);
     }
+}
+
+// OUTPUT LEVEL thumbwheel seen through the faceplate window (issue #82).
+// The drum is a cylinder on its side; the window shows its front face. Surface points are
+// (x, u) with u running round the circumference: a point shows at angle a = (u - rolled) / radius,
+// i.e. at y = centre + radius * sin(a), foreshortened by cos(a). The dots sit on a diagonal
+// line, so as the drum rolls, the point where that line leaves the window's bottom edge
+// walks along the 0-10 scale printed below it.
+void BoomerangAudioProcessorEditor::drawVolumeRoller(juce::Graphics& g, float scale, float proportion)
+{
+    const auto  win    = skin->rollerWindow;
+    const float radius = win.getHeight() * 0.5f / std::sin(Roller::visibleHalfAngle);
+    const float arc    = radius * Roller::visibleHalfAngle;                            // surface visible either side of centre
+    const float rolled = proportion * Roller::travel(*skin);                           // surface at the window's centre line
+    const float lineX0 = skin->rollerScaleX.getStart() - Roller::dotSlope * arc;      // dot line's x at u = 0: exits at "0" when rolled = 0
+
+    juce::Graphics::ScopedSaveState state(g);
+    g.addTransform(juce::AffineTransform::scale(scale));  // draw in base 700x200 units
+    g.reduceClipRegion(win.toNearestInt());
+
+    // Drum body
+    g.setColour(juce::Colour(0xff060606));
+    g.fillRect(win);
+
+    // Knurl: two families of diagonal grooves, sampled down the visible arc so they bend with the drum
+    constexpr int samples = 16;
+    const int firstGroove = static_cast<int>(std::floor((rolled - arc - win.getWidth()) / Roller::knurlPitch));
+    const int lastGroove  = static_cast<int>(std::ceil ((rolled + arc + win.getWidth()) / Roller::knurlPitch));
+
+    g.setColour(juce::Colour(0xff5e5e5e));
+    for (int n = firstGroove; n <= lastGroove; ++n)
+    {
+        for (float dir : { 1.0f, -1.0f })
+        {
+            juce::Path groove;
+            for (int i = 0; i <= samples; ++i)
+            {
+                const float a = Roller::visibleHalfAngle * (2.0f * static_cast<float>(i) / samples - 1.0f);
+                const float u = rolled + radius * a;
+                const juce::Point<float> p(win.getX() + dir * (u - static_cast<float>(n) * Roller::knurlPitch),
+                                           win.getCentreY() + radius * std::sin(a));
+                if (i == 0) groove.startNewSubPath(p);
+                else        groove.lineTo(p);
+            }
+            g.strokePath(groove, juce::PathStrokeType(1.0f));
+        }
+    }
+
+    // Dots, squashed and dimmed as they turn away
+    const int firstDot = static_cast<int>(std::ceil ((rolled - arc) / Roller::dotSpacing));
+    const int lastDot  = static_cast<int>(std::floor((rolled + arc) / Roller::dotSpacing));
+    for (int i = firstDot; i <= lastDot; ++i)
+    {
+        const float u      = static_cast<float>(i) * Roller::dotSpacing;
+        const float a      = (u - rolled) / radius;
+        const float facing = std::cos(a);
+        const juce::Point<float> centre(lineX0 + Roller::dotSlope * u, win.getCentreY() + radius * std::sin(a));
+
+        g.setColour(juce::Colour(0xfff2f0e6).withAlpha(0.5f + 0.5f * facing));
+        g.fillEllipse(juce::Rectangle<float>(Roller::dotSize, Roller::dotSize * facing).withCentre(centre));
+    }
+
+    // Cylinder shading: top and bottom turn away into shadow; lit from just above centre
+    juce::ColourGradient shade(juce::Colours::black.withAlpha(0.7f), 0.0f, win.getY(),
+                               juce::Colours::black.withAlpha(0.6f), 0.0f, win.getBottom(), false);
+    shade.addColour(0.3, juce::Colours::transparentBlack);
+    shade.addColour(0.7, juce::Colours::transparentBlack);
+    g.setGradientFill(shade);
+    g.fillRect(win);
 }
 
 void BoomerangAudioProcessorEditor::updateStatusDisplay()

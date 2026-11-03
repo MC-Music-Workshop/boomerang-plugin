@@ -36,6 +36,12 @@ struct Skin
   juce::Colour           legendColour;  // Extension legends, matched to the panel's printing
   bool                   italicLegends = false;
 
+  // OUTPUT LEVEL thumbwheel drawn over the panel (issue #82). Skins without one
+  // show the slider + volume thumb instead.
+  bool                   hasVolumeRoller = false;
+  juce::Rectangle<float> rollerWindow;  // drum opening in the faceplate
+  juce::Range<float>     rollerScaleX;  // x of the 0 and 10 ticks printed under it
+
   // Palette
   std::array<juce::Colour, 5> ledColours;
   juce::Colour                slowLedColour;

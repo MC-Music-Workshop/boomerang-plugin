@@ -106,6 +106,7 @@ private:
     void drawStackLatchSwitch(juce::Graphics& g, float scale);
     void drawMiniButton(juce::Graphics& g, float scale, const juce::Button& button,
                         juce::Rectangle<float> basePad, const juce::String& legend, bool legendLit);
+    void drawVolumeRoller(juce::Graphics& g, float scale, float proportion);
     void showSettingsMenu();
     static constexpr int inputSourceMenuBase = 100;  // Menu item IDs for the Input Source submenu
     static constexpr int skinMenuBase        = 200;  // Menu item IDs for the Skin submenu
