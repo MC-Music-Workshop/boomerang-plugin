@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: read
+      actions: write  # dispatch homebrew.yml (read is included)
 
     steps:
       - name: Checkout
@@ -181,6 +181,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+      # Releases published by GITHUB_TOKEN don't fire `release: published`, so
+      # homebrew.yml never sees them. workflow_dispatch is exempt from that rule.
+      - name: Update Homebrew cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.find-build.outputs.tag }}
+        run: gh workflow run homebrew.yml -R "${{ github.repository }}" -f tag="$RELEASE_TAG"
+
       - name: Show In Summary
         env:
           RELEASE_URL: ${{ steps.create_release.outputs.url }}

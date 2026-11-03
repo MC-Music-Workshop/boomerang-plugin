@@ -12,6 +12,14 @@ Boomerang is designed for performance-oriented use on drums, guitars, synths, an
 
 Get the latest release here: https://github.com/MC-Music-Workshop/boomerang-plugin/releases/latest
 
+On macOS you can also install it with [Homebrew](https://brew.sh) (VST3, AU, and the standalone app):
+
+```bash
+brew install --cask mc-music-workshop/tap/boomerang@beta
+```
+
+This tracks the newest release, including alphas and betas. Update with `brew upgrade --cask boomerang@beta`.
+
 # Background
 
 Way back when, I had an original ***Boomerang+ Phrase Sampler***. Before looping was cool; chiefly inspired by Trey Anastasio's use of one.

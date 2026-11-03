@@ -70,6 +70,11 @@ To create a release:
 
 Version strings come from `git describe --tags` at CMake configure time (`CMakeLists.txt`); only the git hash refreshes at build time. A local incremental `make` after tagging will NOT update the version — re-run `./build.sh` (re-configure) to pick up a new tag locally.
 
+3. **Homebrew workflow** (`.github/workflows/homebrew.yml`, `workflow_dispatch` only): `release.yml` dispatches it after creating a release (its `GITHUB_TOKEN`-published releases don't fire `release: published`). It bumps `version` + `sha256` in `Casks/boomerang@beta.rb` of [`MC-Music-Workshop/homebrew-tap`](https://github.com/MC-Music-Workshop/homebrew-tap) using the org secret `HOMEBREW_TAP_TOKEN` (unset → warning, no bump).
+   - Backfill or retry: `gh workflow run homebrew.yml -f tag=v2.6.0-alpha.3`
+   - The cask expects the pkg named `Boomerang-{version}.pkg` (tag minus the `v`) and the package ids `com.MCMusicWorkshop.Boomerang.{vst3,au,standalone}` from `build-installer.sh`. Renaming either breaks `brew install`/`brew uninstall` until the cask is edited to match.
+   - Only a beta cask exists. When the first stable release ships, add a stable `boomerang` cask and have the workflow bump it for tags without a `-` (see `midi-captain-max`'s `homebrew.yml` for the two-cask version).
+
 Local testing with `act` (requires Docker):
 - `act -l` — list available jobs
 - `act -n push` — dry run the workflow
