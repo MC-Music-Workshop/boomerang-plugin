@@ -1,0 +1,71 @@
+name: Homebrew
+
+# Bumps the boomerang@beta cask in MC-Music-Workshop/homebrew-tap to a release.
+# release.yml publishes releases with GITHUB_TOKEN, which doesn't fire
+# `release: published`, so it dispatches this workflow after each release.
+# There is no stable `boomerang` cask yet (no stable release); add one here,
+# bumped only for tags without a "-", when the first stable version ships.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to the tap (e.g. v2.6.0-alpha.3)"
+        required: true
+
+# Two releases published close together would otherwise race on the tap push.
+concurrency:
+  group: homebrew-tap
+
+jobs:
+  bump-cask:
+    name: Bump Homebrew cask
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ inputs.tag }}
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - name: Check tap token
+        id: token
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN not set; skipping cask bump"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        if: steps.token.outputs.present == 'true'
+        with:
+          repository: MC-Music-Workshop/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update cask version and sha256
+        if: steps.token.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Tags carry a "v" (v2.6.0-alpha.3); the pkg asset doesn't (Boomerang-2.6.0-alpha.3.pkg).
+          VERSION="${TAG#v}"
+          gh release download "$TAG" -R "${{ github.repository }}" \
+            -p "Boomerang-${VERSION}.pkg" -O cask.pkg
+          SHA256=$(sha256sum cask.pkg | cut -d' ' -f1)
+          rm cask.pkg
+
+          sed -i -E \
+            -e "s/^  version \".*\"/  version \"${VERSION}\"/" \
+            -e "s/^  sha256 \".*\"/  sha256 \"${SHA256}\"/" \
+            "Casks/boomerang@beta.rb"
+          git diff
+
+          if git diff --quiet; then
+            echo "Cask already at ${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "boomerang ${VERSION}"
+          git push
+          echo "✓ Homebrew cask boomerang@beta bumped to ${VERSION} (sha256 ${SHA256})" >> "$GITHUB_STEP_SUMMARY"
