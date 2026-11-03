@@ -27,9 +27,12 @@ static Skin makeClassicSkin()
   s.legendColour  = juce::Colour (0xffe8e8e8);
   s.italicLegends = true;  // Italic caps, like SLOW / STACK
 
+  s.hasVolumeRoller = true;
+  s.rollerWindow    = { 104.0f, 71.0f, 54.0f, 40.0f };  // Drum opening in the photo
+  s.rollerScaleX    = { 112.0f, 147.0f };               // 0 and 10 ticks below it
+
   s.ledColours.fill (juce::Colours::green);
-  s.slowLedColour     = juce::Colours::orange;
-  s.volumeThumbColour = juce::Colours::cyan;
+  s.slowLedColour = juce::Colours::orange;
   return s;
 }
 
