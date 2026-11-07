@@ -15,10 +15,10 @@ Get the latest release here: https://github.com/MC-Music-Workshop/boomerang-plug
 On macOS you can also install it with [Homebrew](https://brew.sh) (VST3, AU, and the standalone app):
 
 ```bash
-brew install --cask mc-music-workshop/tap/boomerang@beta
+brew install --cask mc-music-workshop/tap/boomerang
 ```
 
-This tracks the newest release, including alphas and betas. Update with `brew upgrade --cask boomerang@beta`.
+Update with `brew upgrade --cask boomerang`. To get alphas and betas too, install `mc-music-workshop/tap/boomerang@beta` instead; it tracks the newest release of any kind. The two can't be installed together.
 
 # Background
 
