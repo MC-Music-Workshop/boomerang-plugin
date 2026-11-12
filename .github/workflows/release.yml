@@ -171,7 +171,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.find-build.outputs.tag }}
-          make_latest: true
+          # Tags with a "-" (e.g. v2.6.1-beta.1) are pre-releases, so /releases/latest
+          # (the KVR and Gumroad "latest" links) only ever serves stable releases.
+          prerelease: ${{ contains(needs.find-build.outputs.tag, '-') }}
+          make_latest: ${{ !contains(needs.find-build.outputs.tag, '-') }}
           files: |
             artifacts/boomerang-macos/*
             artifacts/boomerang-windows/*
