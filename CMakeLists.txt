@@ -30,6 +30,12 @@ else()
     message(STATUS "No git info found, using fallback: ${BOOMERANG_FULL_VERSION}")
 endif()
 
+# Bundle/AU version (macOS Get Info, AU hosts) must be numeric X.Y.Z: take it from the tag
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" BOOMERANG_BUNDLE_VERSION "${BOOMERANG_FULL_VERSION}")
+if(NOT BOOMERANG_BUNDLE_VERSION)
+    set(BOOMERANG_BUNDLE_VERSION "${PROJECT_VERSION}")
+endif()
+
 # ==============================================================================
 # Build Configuration
 # ==============================================================================
@@ -84,6 +90,7 @@ configure_file("${CMAKE_DIR}/git_version.h.in" "${GENERATED_DIR}/git_version.h" 
 add_subdirectory(JUCE)
 
 juce_add_plugin(Boomerang
+    VERSION "${BOOMERANG_BUNDLE_VERSION}"
     COMPANY_NAME "MC Music Workshop"
     BUNDLE_ID com.MCMusicWorkshop.Boomerang
     MICROPHONE_PERMISSION_ENABLED TRUE
