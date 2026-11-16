@@ -87,6 +87,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.find-build.outputs.tag }}
+          fetch-depth: 0  # tags, for the previous-tag lookup in the release notes
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v6
@@ -166,6 +169,46 @@ jobs:
           
           ls -la dist/
 
+      # Same process as midi-captain-max: status header, "What's Changed" since
+      # the previous tag, then the installation instructions from the template.
+      - name: Generate release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.find-build.outputs.tag }}
+        run: |
+          case "$TAG" in
+            *alpha*) NOTES="⚠️ **Alpha Release** - For testing only. Not recommended for production use." ;;
+            *beta*)  NOTES="🧪 **Beta Release** - Feature complete, undergoing final testing." ;;
+            *rc*)    NOTES="🚀 **Release Candidate** - Final testing before stable release." ;;
+            *)       NOTES="✅ **Stable Release**" ;;
+          esac
+          export NOTES
+          export VERSION="${TAG#v}"  # asset names carry no "v": Boomerang-2.6.0.pkg
+
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          CHANGELOG=""
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(gh api "repos/${{ github.repository }}/releases/generate-notes" \
+              -f tag_name="$TAG" \
+              -f previous_tag_name="$PREV_TAG" \
+              --jq '.body' 2>/dev/null || echo "")
+          fi
+
+          envsubst '${NOTES} ${VERSION}' < tools/release_notes.md > release_notes_processed.txt
+          {
+            echo "BODY<<RELEASE_BODY_EOF"
+            head -1 release_notes_processed.txt
+            echo ""
+            if [ -n "$CHANGELOG" ]; then
+              echo "$CHANGELOG"
+              echo ""
+            fi
+            tail -n +2 release_notes_processed.txt
+            echo ""
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -180,7 +223,7 @@ jobs:
             artifacts/boomerang-windows/*
             artifacts/boomerang-linux/*
             dist/*
-          generate_release_notes: true
+          body: ${{ steps.notes.outputs.BODY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       

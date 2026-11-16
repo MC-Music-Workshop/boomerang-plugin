@@ -65,15 +65,15 @@ The repository uses GitHub Actions for CI/CD:
 To create a release:
 1. Tag the commit and push the tag: `git tag v3.0.0-alpha.2 && git push origin v3.0.0-alpha.2`
    - No need to wait for the branch build first: the tag push triggers its own Build whose checkout contains the tag, so `git describe` versions the artifact names AND the in-plugin version string with the tag (a branch-push build can only ever produce `<prev-tag>+N.gHASH`).
-2. The Release workflow waits for that build, then publishes the release at https://github.com/mcascone/boomerang-plugin/releases with auto-generated notes.
-3. Edit the release notes as needed.
+2. The Release workflow waits for that build, then publishes the release at https://github.com/MC-Music-Workshop/boomerang-plugin/releases. Tags with a `-` are pre-releases; stable tags become Latest, which is what the `releases/latest` download links (Gumroad, KVR) serve.
+3. Release notes are generated like midi-captain-max's: a status header from the tag (alpha/beta/rc/stable), GitHub's "What's Changed" since the previous tag, then `tools/release_notes.md` (installation and how to help; `${NOTES}` and `${VERSION}` are filled in). Edit that template, not each release.
 
 Version strings come from `git describe --tags` at CMake configure time (`CMakeLists.txt`); only the git hash refreshes at build time. A local incremental `make` after tagging will NOT update the version — re-run `./build.sh` (re-configure) to pick up a new tag locally.
 
-3. **Homebrew workflow** (`.github/workflows/homebrew.yml`, `workflow_dispatch` only): `release.yml` dispatches it after creating a release (its `GITHUB_TOKEN`-published releases don't fire `release: published`). It bumps `version` + `sha256` in `Casks/boomerang@beta.rb` (every release) and `Casks/boomerang.rb` (stable releases only: tags without a `-`) of [`MC-Music-Workshop/homebrew-tap`](https://github.com/MC-Music-Workshop/homebrew-tap) using the org secret `HOMEBREW_TAP_TOKEN` (unset → warning, no bump).
+3. **Homebrew workflow** (`.github/workflows/homebrew.yml`, `workflow_dispatch` only): `release.yml` dispatches it after creating a release (its `GITHUB_TOKEN`-published releases don't fire `release: published`). It bumps `version` + `sha256` in `Casks/boomerang@alpha.rb` (every release), `Casks/boomerang@beta.rb` (every release except alphas) and `Casks/boomerang.rb` (stable releases only: tags without a `-`) of [`MC-Music-Workshop/homebrew-tap`](https://github.com/MC-Music-Workshop/homebrew-tap) using the org secret `HOMEBREW_TAP_TOKEN` (unset → warning, no bump).
    - Backfill or retry: `gh workflow run homebrew.yml -f tag=v2.6.0-alpha.3`
    - The cask expects the pkg named `Boomerang-{version}.pkg` (tag minus the `v`) and the package ids `com.MCMusicWorkshop.Boomerang.{vst3,au,standalone}` from `build-installer.sh`. Renaming either breaks `brew install`/`brew uninstall` until the cask is edited to match.
-   - The two casks install the same pkg ids, so `boomerang@beta` declares `conflicts_with cask: "boomerang"`; switching means uninstalling one first.
+   - The three casks install the same pkg ids, so they declare `conflicts_with` each other; switching means uninstalling one first.
 
 Local testing with `act` (requires Docker):
 - `act -l` — list available jobs
