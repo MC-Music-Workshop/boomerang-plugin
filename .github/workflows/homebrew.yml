@@ -1,7 +1,8 @@
 name: Homebrew
 
 # Bumps the casks in MC-Music-Workshop/homebrew-tap for a release:
-#   - boomerang@beta tracks every release (alpha, beta, rc, stable)
+#   - boomerang@alpha tracks every release (alpha, beta, rc, stable)
+#   - boomerang@beta tracks beta, rc and stable releases
 #   - boomerang tracks stable releases only
 # release.yml publishes releases with GITHUB_TOKEN, which doesn't fire
 # `release: published`, so it dispatches this workflow after each release.
@@ -54,7 +55,11 @@ jobs:
           rm cask.pkg
 
           # Tag format is v{major}.{minor}.{patch}[-{prerelease}]; any "-" means prerelease.
-          CASKS=("Casks/boomerang@beta.rb")
+          # @alpha gets everything, @beta everything but alphas, the stable cask stables only.
+          CASKS=("Casks/boomerang@alpha.rb")
+          if [[ "$TAG" != *-alpha* ]]; then
+            CASKS+=("Casks/boomerang@beta.rb")
+          fi
           if [[ "$TAG" != *-* ]]; then
             CASKS+=("Casks/boomerang.rb")
           fi
