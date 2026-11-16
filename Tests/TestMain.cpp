@@ -64,5 +64,8 @@ static juce::JUCEApplicationBase* createTestApplication() { return new TestAppli
 int main(int argc, char* argv[])
 {
   juce::JUCEApplicationBase::createInstance = &createTestApplication;
-  return juce::JUCEApplicationBase::main(argc, (const char**) argv);
+  // JUCE's own macro: argc/argv everywhere except Windows GUI builds, where
+  // JUCEApplicationBase only defines the no-argument main()
+  juce::ignoreUnused(argc, argv);
+  return juce::JUCEApplicationBase::main(JUCE_MAIN_FUNCTION_ARGS);
 }
