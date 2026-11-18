@@ -18,6 +18,9 @@ on:
 
 env:
   BUILD_TYPE: Release
+  # LTO only for release (v* tag) builds: it adds 2-4 min of linking per OS.
+  # Branch/PR builds skip it; the tag build still runs tests + pluginval on the LTO binaries.
+  BOOMERANG_LTO: ${{ startsWith(github.ref, 'refs/tags/v') && 'ON' || 'OFF' }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -123,7 +126,8 @@ jobs:
         if: runner.os != 'Windows'
         uses: hendrikmuhs/ccache-action@v1
         with:
-          key: ${{ runner.os }}-ccache
+          # Separate LTO cache so rare tag builds don't evict the branch-build objects
+          key: ${{ runner.os }}-ccache${{ env.BOOMERANG_LTO == 'ON' && '-lto' || '' }}
           verbose: 2
 
       # Setup sccache for faster compilation (Windows - works with MSVC)
@@ -148,11 +152,13 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DBOOMERANG_LTO=${{ env.BOOMERANG_LTO }} \
               -DCMAKE_C_COMPILER_LAUNCHER=sccache \
               -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
               ${{ matrix.cmake_flags }}
           else
             cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DBOOMERANG_LTO=${{ env.BOOMERANG_LTO }} \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               ${{ matrix.cmake_flags }}

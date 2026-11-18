@@ -143,9 +143,17 @@ target_link_libraries(Boomerang
         juce::juce_dsp
     PUBLIC
         juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# LTO roughly triples link time (it re-optimizes all of JUCE for every plugin
+# format and the tests), so CI turns it off for branch/PR builds and keeps it
+# for release (v* tag) builds. Local builds keep it on by default.
+option(BOOMERANG_LTO "Link-time optimization for release binaries" ON)
+if(BOOMERANG_LTO)
+    target_link_libraries(Boomerang PUBLIC juce::juce_recommended_lto_flags)
+endif()
+message(STATUS "Link-time optimization: ${BOOMERANG_LTO}")
 
 # ==============================================================================
 # Optional: ThreadSanitizer for Race Detection

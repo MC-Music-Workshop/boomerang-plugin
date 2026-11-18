@@ -32,6 +32,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - Host validation: `cd build && make validate` (builds the VST3 if needed, then runs pluginval at CI's strictness level 5; `./build.sh` runs it automatically at the end). Install with `brew install --cask pluginval`, then re-run cmake so it gets found; the cask doesn't put `pluginval` on `PATH`, but CMake looks in `/Applications`.
 - AU validation (macOS): `cd build && make validate-au` (builds and installs the AU, then runs `auval -v aumf BOOM MCMW`).
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
+- Link-time optimization: `-DBOOMERANG_LTO=ON` (default). CI builds branches/PRs with `OFF` and only `v*` tag (release) builds with `ON`, because LTO is most of the CI build time (2-4 min of linking per OS; compiling is cached by ccache/sccache). Pass `-DBOOMERANG_LTO=OFF` for faster local iteration.
 
 ## Coding Style & Naming Conventions
 
