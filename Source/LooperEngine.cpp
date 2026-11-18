@@ -233,9 +233,13 @@ void LooperEngine::onOnceButtonPressed()
             stopRecording();
         }
 
-        // If stopped or recording, play once
-        setOnceMode(OnceMode::On);
-        startPlayback();
+        // If stopped or recording, play once. With no loop there is nothing to
+        // play, so don't arm Once for the next loop either
+        if (loopSlots[static_cast<size_t>(activeLoopSlot.load())].hasContent.load())
+        {
+            setOnceMode(OnceMode::On);
+            startPlayback();
+        }
     }
     
     stateTransitionInProgress.store(false);

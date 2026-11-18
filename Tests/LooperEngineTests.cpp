@@ -474,14 +474,16 @@ public:
       checkBuffers(d.run(ramp(max_samples + 100)), silence(max_samples + 100), "silent throughout");
     });
 
-    knownBug("#6 ONCE with nothing recorded doesn't leave Once armed", [&]
+    //==========================================================================
+    beginTest("ONCE with nothing recorded doesn't leave Once armed");
     {
       EngineDriver d(64);
       d.engine.onOnceButtonPressed();
+      check(d.engine.getOnceMode() == LooperEngine::OnceMode::Off, "Once stays off");
       d.recordLoop(loop_a);
       d.run(silence(650));
       check(d.engine.getState() == State::Playing, "the new loop keeps cycling");
-    });
+    }
 
     knownBug("#7 half-speed playback of a loop longer than 2^23 samples still wraps", [&]
     {
