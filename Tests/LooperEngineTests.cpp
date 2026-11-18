@@ -471,18 +471,50 @@ public:
     }
 
     //==========================================================================
-    // Recording always runs forward; REVERSE only sets the playback direction
-    beginTest("A take recorded with Reverse on plays backwards");
+    // Continuous reverse (README, DIRECTION; issue #14): REVERSE on before the
+    // take begins, then RECORD twice to set the loop length
+    beginTest("Continuous reverse: each pass plays the pass before it backwards");
+    forEachBlockSize([&](int block_size)
+    {
+      EngineDriver d(block_size);
+      d.engine.onThruMuteButtonPressed();   // only the reversed signal
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      check(d.engine.getState() == State::ContinuousReverse, "second RECORD enters continuous reverse");
+      check(d.engine.isRecording() && d.engine.isPlaying(), "recording and playing at once");
+      checkBuffers(d.run(live), reversedPasses(loop_a, live), "the take backwards, then each pass of live input backwards");
+    });
+
+    //==========================================================================
+    beginTest("Continuous reverse with THRU on mixes in the live input; volume scales only the reversed signal");
+    forEachBlockSize([&](int block_size)
+    {
+      EngineDriver d(block_size);
+      d.engine.setVolume(0.5f);
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      checkBuffers(d.run(live), mix(reversedPasses(loop_a, live), 0.5f, live, 1.0f), "reversed passes at half level + live");
+    });
+
+    //==========================================================================
+    beginTest("Continuous reverse: loop wrap is flagged at the end of each pass");
     forEachBlockSize([&](int block_size)
     {
       EngineDriver d(block_size);
       d.engine.onReverseButtonPressed();
-      d.recordLoop(loop_b);
-      checkBuffers(d.run(silence(240)), cycle(reversed(loop_b), 240), "the take, backwards");
+      d.recordLoop(loop_a);
+      d.run(silence(299));
+      check(! d.engine.checkAndClearLoopWrapped(), "no wrap one sample before the end of the first pass");
+      d.run(silence(1));
+      check(d.engine.checkAndClearLoopWrapped(), "wrap after the first pass");
+      d.run(silence(299));
+      check(! d.engine.checkAndClearLoopWrapped(), "no wrap one sample before the end of the second pass");
+      d.run(silence(1));
+      check(d.engine.checkAndClearLoopWrapped(), "wrap after the second pass");
     });
 
     //==========================================================================
-    beginTest("Re-recording with Reverse on plays the new take, not the old loop");
+    beginTest("Re-recording with Reverse on enters continuous reverse with the new take");
     forEachBlockSize([&](int block_size)
     {
       EngineDriver d(block_size);
@@ -490,7 +522,88 @@ public:
       d.run(silence(300));
       d.engine.onReverseButtonPressed();
       d.recordLoop(loop_b);
+      check(d.engine.getState() == State::ContinuousReverse, "continuous reverse");
       checkBuffers(d.run(silence(120)), reversed(loop_b), "the new take, backwards");
+    });
+
+    //==========================================================================
+    beginTest("RECORD during continuous reverse starts a new take, which sets the new loop length");
+    forEachBlockSize([&](int block_size)
+    {
+      const Buffer more = slice(live, 0, 240);
+
+      EngineDriver d(block_size);
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      d.run(slice(live, 0, 450));
+      d.engine.onRecordButtonPressed();
+      check(d.engine.getState() == State::Recording, "RECORD starts a new take");
+      d.run(loop_b);
+      d.engine.onRecordButtonPressed();
+      check(d.engine.getState() == State::ContinuousReverse, "second RECORD re-enters continuous reverse");
+      checkBuffers(d.run(more), reversedPasses(loop_b, more), "passes are the new take's length");
+    });
+
+    //==========================================================================
+    beginTest("PLAY ends continuous reverse");
+    forEachBlockSize([&](int block_size)
+    {
+      EngineDriver d(block_size);
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      d.run(slice(live, 0, 100));
+      d.engine.onPlayButtonPressed();
+      check(d.engine.getState() == State::Stopped, "stopped");
+      check(! d.engine.isRecording(), "no longer recording");
+      checkBuffers(d.run(live), live, "only dry signal");
+    });
+
+    //==========================================================================
+    beginTest("REVERSE during continuous reverse stops recording; the loop plays on forwards");
+    forEachBlockSize([&](int block_size)
+    {
+      EngineDriver d(block_size);
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      d.run(silence(100));   // the first pass has written silence over samples 299 down to 200
+      d.engine.onReverseButtonPressed();
+      check(d.engine.getState() == State::Playing, "plain playback");
+      check(d.engine.getLoopMode() == LooperEngine::LoopMode::Normal, "forwards");
+
+      // Forwards from sample 199; the live input is no longer recorded
+      const Buffer loop_now = concat(slice(loop_a, 0, 200), silence(100));
+      checkBuffers(d.run(slice(live, 0, 600)), cycle(loop_now, 600, 199), "the loop as it was, forwards");
+    });
+
+    //==========================================================================
+    beginTest("STACK and ONCE leave continuous reverse alone");
+    {
+      EngineDriver d(64);
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_a);
+      d.engine.onStackButtonPressed();
+      d.engine.onStackButtonReleased();
+      d.engine.onOnceButtonPressed();
+      check(d.engine.getState() == State::ContinuousReverse, "still in continuous reverse");
+      check(d.engine.getOnceMode() == LooperEngine::OnceMode::Off, "Once not armed");
+    }
+
+    //==========================================================================
+    beginTest("REVERSE turned off during the take: the take plays forwards");
+    forEachBlockSize([&](int block_size)
+    {
+      EngineDriver d(block_size);
+      const Buffer take = slice(loop_a, 0, 150);
+      d.engine.onReverseButtonPressed();
+      d.engine.onRecordButtonPressed();
+      d.run(slice(take, 0, 100));
+      d.engine.onReverseButtonPressed();
+      d.run(slice(take, 100, 50));
+      d.engine.onRecordButtonPressed();
+      check(d.engine.getState() == State::Playing, "plain playback");
+      checkBuffers(d.run(silence(300)), cycle(take, 300), "the take, forwards");
     });
 
     //==========================================================================

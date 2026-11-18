@@ -542,12 +542,11 @@ void BoomerangAudioProcessorEditor::timerCallback()
     thruMuteButton.setToggleState(thruState == LooperEngine::ThruMuteState::On, juce::dontSendNotification);
     
     auto looperState = audioProcessor.getLooperEngine()->getState();
-    bool isRecording = (looperState == LooperEngine::LooperState::Recording || 
-                        looperState == LooperEngine::LooperState::Overdubbing);
+    // Continuous reverse lights both RECORD and PLAY (issue #14)
+    bool isRecording = audioProcessor.getLooperEngine()->isRecording();
     recordButton.setToggleState(isRecording, juce::dontSendNotification);
     
-    bool isPlaying = (looperState == LooperEngine::LooperState::Playing || 
-                      looperState == LooperEngine::LooperState::Overdubbing);
+    bool isPlaying = audioProcessor.getLooperEngine()->isPlaying();
     playButton.setToggleState(isPlaying, juce::dontSendNotification);
     
     auto loopMode = audioProcessor.getLooperEngine()->getLoopMode();

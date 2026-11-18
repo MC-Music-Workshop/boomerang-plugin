@@ -149,6 +149,23 @@ public:
     });
 
     //==========================================================================
+    beginTest("Continuous reverse shows RECORD and PLAY on to the host");
+    forEachBlockSize([&](int block_size)
+    {
+      ProcessorDriver d(block_size);
+      d.set(ParameterIDs::thruMute, 1.0f);
+      d.set(ParameterIDs::reverse, 1.0f);
+      d.set(ParameterIDs::record, 1.0f);
+      d.run(loop_a);
+      d.set(ParameterIDs::record, 0.0f);
+      check(d.engine().getState() == State::ContinuousReverse, "continuous reverse");
+      check(d.get(ParameterIDs::record) >= 0.5f, "record echoed on");
+      check(d.get(ParameterIDs::playState) >= 0.5f, "playState echoed on");
+      checkBuffers(d.run(live), reversedPasses(loop_a, live), "reversed passes");
+      // Stopping with one PLAY tap hits known bug #8 (RerecordTests), as for any playback
+    });
+
+    //==========================================================================
     beginTest("Saved state restores settings but not transient modes");
     {
       juce::MemoryBlock saved;
