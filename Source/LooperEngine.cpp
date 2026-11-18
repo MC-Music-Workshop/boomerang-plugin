@@ -577,7 +577,6 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
 
     int numSamples = buffer.getNumSamples();
     float speed = (speedMode.load() == SpeedMode::Half) ? 0.5f : 1.0f;
-    auto loopDirection = loopMode.load();
     auto thruMuteState = thruMute.load();
     int slotLength = slot.length.load();
     float volume = outputVolume.load();  // Apply volume to loop signal only (issue #44)
@@ -589,24 +588,12 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
         {
             int pos = static_cast<int>(currentPlayPos);
             float frac = currentPlayPos - pos;
-            
-            float loopSample;
-            
-            if (loopDirection == LoopMode::Reverse)
-            {
-                // Read directly at the decreasing playhead position
-                int prevPos = (pos > 0) ? pos - 1 : (slotLength - 1);
-                float sample1 = slot.buffer.getSample(channel, pos);
-                float sample2 = slot.buffer.getSample(channel, prevPos);
-                loopSample = sample1 + frac * (sample2 - sample1);
-            }
-            else
-            {
-                int nextPos = (pos + 1) % slotLength;
-                float sample1 = slot.buffer.getSample(channel, pos);
-                float sample2 = slot.buffer.getSample(channel, nextPos);
-                loopSample = sample1 + frac * (sample2 - sample1);
-            }
+
+            // A fractional playhead sits between pos and pos + 1 in either direction
+            int nextPos = (pos + 1) % slotLength;
+            float sample1 = slot.buffer.getSample(channel, pos);
+            float sample2 = slot.buffer.getSample(channel, nextPos);
+            float loopSample = sample1 + frac * (sample2 - sample1);
             
             // Apply volume to loop signal only, not input (issue #44)
             float scaledLoopSample = loopSample * volume;

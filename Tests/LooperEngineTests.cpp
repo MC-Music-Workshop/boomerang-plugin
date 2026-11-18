@@ -411,30 +411,29 @@ public:
       check(d.engine.checkAndClearLoopWrapped(), "loop is as long as what was recorded (150 samples)");
     });
 
-    knownBug("#3 reverse at half speed interpolates between adjacent samples", [&]
+    //==========================================================================
+    beginTest("Reverse at half speed interpolates between adjacent samples");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.engine.onPlayButtonPressed();
-        d.engine.onReverseButtonPressed();
-        d.engine.onSlowButtonPressed();
-        d.engine.onPlayButtonPressed();
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onSlowButtonPressed();
+      d.engine.onPlayButtonPressed();
 
-        const Buffer backwards = reversed(loop_a);
-        Buffer expected(2, 600);
-        for (int channel = 0; channel < 2; ++channel)
-          for (int i = 0; i < 300; ++i)
-          {
-            const float here = backwards.getSample(channel, i);
-            const float next = backwards.getSample(channel, (i + 1) % 300);
-            expected.setSample(channel, 2 * i, here);
-            expected.setSample(channel, 2 * i + 1, (here + next) * 0.5f);
-          }
+      const Buffer backwards = reversed(loop_a);
+      Buffer expected(2, 600);
+      for (int channel = 0; channel < 2; ++channel)
+        for (int i = 0; i < 300; ++i)
+        {
+          const float here = backwards.getSample(channel, i);
+          const float next = backwards.getSample(channel, (i + 1) % 300);
+          expected.setSample(channel, 2 * i, here);
+          expected.setSample(channel, 2 * i + 1, (here + next) * 0.5f);
+        }
 
-        checkBuffers(d.run(silence(600)), expected, "reversed half-speed loop");
-      });
+      checkBuffers(d.run(silence(600)), expected, "reversed half-speed loop");
     });
 
     knownBug("#4 one stack pass at half speed applies the 2.5 dB drop once", [&]
