@@ -335,10 +335,9 @@ void LooperEngine::startRecording()
     auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
     
     activeSlot.isRecording.store(true);
-    // Start at end if reverse, beginning if forward
-    activeSlot.recordPosition.store((loopMode.load() == LoopMode::Reverse) 
-        ? static_cast<float>(maxLoopSamples - 1) 
-        : 0.0f);
+    // Always record forward from the start of the buffer: playback reads the loop
+    // from 0 to length, and REVERSE only sets the playback direction
+    activeSlot.recordPosition.store(0.0f);
     currentState.store(LooperState::Recording);
     
     // Notify host that record button is on
@@ -352,11 +351,7 @@ void LooperEngine::stopRecording()
     
     activeSlot.isRecording.store(false);
     
-    // Calculate recorded length based on direction
     int finalLength = static_cast<int>(activeSlot.recordPosition.load());
-    if (loopMode.load() == LoopMode::Reverse)
-        finalLength = (maxLoopSamples - 1) - finalLength;
-    
     activeSlot.length.store(finalLength);
     activeSlot.hasContent.store(finalLength > 0);
     currentState.store(LooperState::Stopped);
@@ -556,11 +551,7 @@ void LooperEngine::processRecording(juce::AudioBuffer<float>& buffer, LoopSlot& 
             slot.buffer.setSample(channel, writePos, inputSample);
         }
         
-        // Advance record position respecting direction
-        if (loopMode.load() == LoopMode::Reverse)
-            slot.recordPosition.store(currentRecordPos - speed);
-        else
-            slot.recordPosition.store(currentRecordPos + speed);
+        slot.recordPosition.store(currentRecordPos + speed);
     }
     
     // When thru mute is on, mute the input passthrough while recording

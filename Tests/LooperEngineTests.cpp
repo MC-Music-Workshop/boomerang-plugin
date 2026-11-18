@@ -372,50 +372,43 @@ public:
     // Behaviour believed broken. Each stays here only while its assertions fail
     // under BOOMERANG_RUN_KNOWN_BUGS=1.
 
-    knownBug("#1 a take recorded with Reverse on plays back", [&]
+    //==========================================================================
+    // Recording always runs forward; REVERSE only sets the playback direction
+    beginTest("A take recorded with Reverse on plays backwards");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.onReverseButtonPressed();
-        d.recordLoop(loop_b);
-        const Buffer out = d.run(silence(120));
-        check(firstMismatch(out, loop_b).isEmpty() || firstMismatch(out, reversed(loop_b)).isEmpty(),
-              "one pass holds the take, in either direction - " + firstMismatch(out, reversed(loop_b)));
-      });
+      EngineDriver d(block_size);
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_b);
+      checkBuffers(d.run(silence(240)), cycle(reversed(loop_b), 240), "the take, backwards");
     });
 
-    knownBug("#1 re-recording over an existing loop with Reverse on plays the new take", [&]
+    //==========================================================================
+    beginTest("Re-recording with Reverse on plays the new take, not the old loop");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.run(silence(300));
-        d.engine.onReverseButtonPressed();
-        d.recordLoop(loop_b);
-        const Buffer out = d.run(silence(120));
-        check(firstMismatch(out, loop_b).isEmpty() || firstMismatch(out, reversed(loop_b)).isEmpty(),
-              "one pass holds the new take, in either direction - " + firstMismatch(out, reversed(loop_b)));
-        check(firstMismatch(out, reversed(slice(loop_a, 0, 120))).isEmpty() == false,
-              "the old loop's first 120 samples must not come back (backwards)");
-      });
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.run(silence(300));
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_b);
+      checkBuffers(d.run(silence(120)), reversed(loop_b), "the new take, backwards");
     });
 
-    knownBug("#2 REVERSE pressed while recording keeps the loop length", [&]
+    //==========================================================================
+    beginTest("REVERSE while recording: the take keeps its length and plays backwards");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.onRecordButtonPressed();
-        d.run(slice(loop_a, 0, 100));
-        d.engine.onReverseButtonPressed();
-        d.run(slice(loop_a, 100, 50));
-        d.engine.onRecordButtonPressed();
-        check(d.engine.getState() == State::Playing, "second RECORD starts playback");
-        d.run(silence(150));
-        check(d.engine.checkAndClearLoopWrapped(), "loop is as long as what was recorded (150 samples)");
-      });
+      EngineDriver d(block_size);
+      const Buffer take = slice(loop_a, 0, 150);
+      d.engine.onRecordButtonPressed();
+      d.run(slice(take, 0, 100));
+      d.engine.onReverseButtonPressed();
+      d.run(slice(take, 100, 50));
+      d.engine.onRecordButtonPressed();
+      check(d.engine.getState() == State::Playing, "second RECORD starts playback");
+      checkBuffers(d.run(silence(150)), reversed(take), "the whole take, backwards");
+      check(d.engine.checkAndClearLoopWrapped(), "loop is as long as what was recorded (150 samples)");
     });
 
     knownBug("#3 reverse at half speed interpolates between adjacent samples", [&]
