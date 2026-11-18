@@ -210,3 +210,43 @@ else()
     )
 endif()
 
+
+# auval validation of the AudioUnit (macOS). auval looks the plugin up by its
+# codes among the installed components, which is where the AU build copies it.
+# The type is aumf (music effect) because the plugin is an effect that takes MIDI;
+# the other two codes are PLUGIN_CODE and PLUGIN_MANUFACTURER_CODE above.
+if(APPLE)
+    add_custom_target(validate-au
+        COMMAND auval -v aumf BOOM MCMW
+        DEPENDS Boomerang_AU
+        COMMENT "Validating AudioUnit with auval"
+    )
+endif()
+
+# ==============================================================================
+# Audio Tests
+# ==============================================================================
+# Known-input / known-output tests of the looper engine and the processor.
+# Run with: ctest --test-dir build --output-on-failure
+
+enable_testing()
+
+add_executable(BoomerangTests
+    Tests/TestMain.cpp
+    Tests/LooperEngineTests.cpp
+    Tests/ProcessorTests.cpp
+)
+
+# The plugin's shared code is a static library with the JUCE modules compiled in.
+# Like JUCE's own format wrappers, the tests link it and reuse its include paths
+# and definitions, so JUCE isn't compiled a second time with different settings.
+target_include_directories(BoomerangTests PRIVATE
+    Source
+    $<TARGET_PROPERTY:Boomerang,INCLUDE_DIRECTORIES>
+)
+target_compile_definitions(BoomerangTests PRIVATE $<TARGET_PROPERTY:Boomerang,COMPILE_DEFINITIONS>)
+target_compile_features(BoomerangTests PRIVATE cxx_std_17)
+target_link_libraries(BoomerangTests PRIVATE Boomerang)
+
+add_test(NAME BoomerangTests COMMAND BoomerangTests)
+set_tests_properties(BoomerangTests PROPERTIES TIMEOUT 300)

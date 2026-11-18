@@ -15,6 +15,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 ## Project Structure & Module Organization
 
 - `Source/`: core C++ code (PluginProcessor, PluginEditor, LooperEngine).
+- `Tests/`: automated audio tests (`BoomerangTests`), see [Testing Guidelines](#testing-guidelines).
 - `build/`: generated build artifacts and Makefile.
 - `JUCE/`: JUCE framework (git submodule).
 - `archive/plug-n-script/`: archived legacy Plug n Script implementation.
@@ -27,7 +28,9 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - After committing: `cd build && make -j8` (git hash updates automatically at build time; only PluginEditor.cpp recompiles).
 - Note: Plugins auto-install to system directories when rebuilt via COPY_PLUGIN_AFTER_BUILD.
 - Build installer: `./build-installer.sh` (creates macOS .pkg installer with VST3, AU, and Standalone).
-- Tests: `cd build && make validate` (builds the VST3 if needed, then runs pluginval at CI's strictness level 5; `./build.sh` runs it automatically at the end). Install with `brew install --cask pluginval`, then re-run cmake so it gets found; the cask doesn't put `pluginval` on `PATH`, but CMake looks in `/Applications`.
+- Audio tests: `cmake --build build --target BoomerangTests -j8 && ctest --test-dir build --output-on-failure` (see [Testing Guidelines](#testing-guidelines)).
+- Host validation: `cd build && make validate` (builds the VST3 if needed, then runs pluginval at CI's strictness level 5; `./build.sh` runs it automatically at the end). Install with `brew install --cask pluginval`, then re-run cmake so it gets found; the cask doesn't put `pluginval` on `PATH`, but CMake looks in `/Applications`.
+- AU validation (macOS): `cd build && make validate-au` (builds and installs the AU, then runs `auval -v aumf BOOM MCMW`).
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
 
 ## Coding Style & Naming Conventions
@@ -82,8 +85,29 @@ Local testing with `act` (requires Docker):
 
 ## Testing Guidelines
 
-- No automated test suite; validate via plugin host or JUCE Standalone build (`Boomerang_artefacts/Standalone`).
-- When reproducing issues, note loop length, direction, Once/Stack states, and host buffer size.
+`Tests/` holds known-input / known-output audio tests, built as the `BoomerangTests` executable and run by CTest (CI runs them on every platform after the build).
+
+**How:**
+
+```bash
+cmake --build build --target BoomerangTests -j8
+ctest --test-dir build --output-on-failure        # everything that should pass
+BOOMERANG_RUN_KNOWN_BUGS=1 ./build/BoomerangTests  # also run the known-bug tests (these fail)
+```
+
+- `Tests/LooperEngineTests.cpp`: the engine on its own (record, play, reverse, half speed, Once, stack, buffer full).
+- `Tests/ProcessorTests.cpp`: the processor through its host parameters (input source, mono input, transport, saved state), plus re-recording the way a host-mapped pedal drives it.
+- `Tests/TestHelpers.h`: test signals, the `EngineDriver` / `ProcessorDriver` that feed audio in blocks, and the `BoomerangTest` base class.
+
+When adding a test:
+
+- Build inputs from `ramp()`. Its values are exact in float, so copy and passthrough paths compare bit-for-bit; pass `gain_tolerance` only where the stack gain is involved.
+- Wrap scenarios in `forEachBlockSize()`. The audio must not depend on the host buffer size, and several bugs only show at some sizes.
+- Press buttons only between `run()` calls, as the drivers do.
+- If the test exposes a bug you are not fixing now, wrap it in `knownBug("#N description", ...)`. It is skipped by default and runs with `BOOMERANG_RUN_KNOWN_BUGS=1`. When the bug is fixed, turn it back into a normal `beginTest`.
+- The tests link the plugin's shared code, so they use the real `LooperEngine` and `BoomerangAudioProcessor`. The test app runs a JUCE message loop on the main thread; `flushMessageQueue()` waits for the engine's state echoes to reach the host parameters.
+
+The tests do not cover the editor. Check UI behavior in a plugin host or the JUCE Standalone build (`Boomerang_artefacts/Standalone`). When reproducing issues, note loop length, direction, Once/Stack states, and host buffer size.
 
 ## Commit & Pull Request Guidelines
 
