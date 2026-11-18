@@ -179,10 +179,14 @@ endif()
 # Strict warnings build
 add_custom_target(check-warnings
     COMMAND ${CMAKE_COMMAND} -E echo "Building with warnings as errors..."
+    # Quote the whole -D argument and use VERBATIM: written as -DCMAKE_CXX_FLAGS="...",
+    # the quotes reach the compiler and it sees one unknown flag instead of three.
+    # Deprecations stay warnings: JUCE's Metal renderer uses APIs deprecated in macOS 27.
     COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/warnings-build
-            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror" -DCMAKE_BUILD_TYPE=Debug
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/warnings-build -j4
+            "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Werror -Wno-error=deprecated-declarations" -DCMAKE_BUILD_TYPE=Debug
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/warnings-build -j8
     COMMENT "Building with -Werror to catch all warnings"
+    VERBATIM
 )
 
 # pluginval validation (if installed)
