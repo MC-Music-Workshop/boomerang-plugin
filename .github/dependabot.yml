@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Bumps the full-version `uses:` refs in .github/workflows/ and regenerates
+  # actions.lock in the same PR. The cooldown skips releases younger than a
+  # week, so a hijacked release has time to be caught before we adopt it
+  # (gh actions-lock also reads it for its fresh-release notice).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

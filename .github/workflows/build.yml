@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
           fetch-depth: 0  # Full history for git version
@@ -103,7 +103,7 @@ jobs:
 
       - name: Cache JUCE build
         id: cache-juce
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: |
             build/JUCE
@@ -124,7 +124,7 @@ jobs:
       # Setup ccache for faster compilation (macOS/Linux)
       - name: Setup ccache
         if: runner.os != 'Windows'
-        uses: hendrikmuhs/ccache-action@v1
+        uses: hendrikmuhs/ccache-action@v1.2.25
         with:
           # Separate LTO cache so rare tag builds don't evict the branch-build objects
           key: ${{ runner.os }}-ccache${{ env.BOOMERANG_LTO == 'ON' && '-lto' || '' }}
@@ -143,7 +143,7 @@ jobs:
       # Setup MSVC environment for Ninja on Windows
       - name: Setup MSVC
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@v1.13.0
 
       # Configure CMake
       # Note: Windows uses Ninja generator because CMAKE_*_COMPILER_LAUNCHER
@@ -376,7 +376,7 @@ jobs:
 
       # Upload artifacts
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/*
@@ -409,7 +409,7 @@ jobs:
     steps:
       # Download build artifacts (no checkout/rebuild needed)
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: ${{ matrix.artifact_name }}
           path: dist
