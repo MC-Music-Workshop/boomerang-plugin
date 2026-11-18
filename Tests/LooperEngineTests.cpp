@@ -1,4 +1,6 @@
 #include "TestHelpers.h"
+#include <atomic>
+#include <thread>
 
 using namespace test;
 using State = LooperEngine::LooperState;
@@ -153,6 +155,78 @@ public:
       // 450 steps back from 100 lands on 250
       checkBuffers(d.run(silence(450)), cycle(loop_a, 450, 250), "forwards again from where it was");
     });
+
+    //==========================================================================
+    // A click on the REVERSE button reaches the engine from the message thread,
+    // usually while the audio thread is partway through a block. Where the presses
+    // land can't be scripted, so this checks the shape of the output: every sample
+    // is the loop sample next to the one before (each turnaround is clean), and
+    // turnarounds happen inside blocks, not only where a block starts.
+    beginTest("REVERSE pressed while a block is playing turns around inside that block");
+    {
+      const int loop_length = 1000;
+      const int block_size  = 4096;
+      const int num_blocks  = 500;
+
+      EngineDriver d(block_size, 1);
+      d.recordLoop(ramp(loop_length, 0, 1));
+
+      Buffer output(1, block_size * num_blocks);
+      std::atomic<bool> playing { true };
+      std::thread audio_thread([&]
+      {
+        Buffer block(1, block_size);
+        for (int b = 0; b < num_blocks; ++b)
+        {
+          block.clear();
+          d.engine.processBlock(block);
+          output.copyFrom(0, b * block_size, block, 0, 0, block_size);
+        }
+        playing = false;
+      });
+
+      // Busy-wait between presses: sleep granularity on some CI machines is longer than the whole run
+      int presses = 0;
+      while (playing)
+      {
+        d.engine.onReverseButtonPressed();
+        ++presses;
+        const auto until = juce::Time::getHighResolutionTicks() + juce::Time::secondsToHighResolutionTicks(0.0002);
+        while (playing && juce::Time::getHighResolutionTicks() < until) {}
+      }
+      audio_thread.join();
+
+      // Loop sample n holds (n + 1) / 1024, so each output value names the loop position it came from
+      auto positionAt = [&](int i) { return juce::roundToInt(output.getSample(0, i) * 1024.0f) - 1; };
+
+      int jumps = 0, turnarounds = 0, mid_block_turnarounds = 0, previous_step = 0;
+      for (int i = 1; i < output.getNumSamples(); ++i)
+      {
+        int step = positionAt(i) - positionAt(i - 1);
+        if (step == loop_length - 1) step = -1;   // backwards across the loop start
+        if (step == 1 - loop_length) step = 1;    // forwards across the loop end
+        if (step != 1 && step != -1)
+        {
+          ++jumps;
+          continue;
+        }
+
+        if (previous_step != 0 && step != previous_step)
+        {
+          ++turnarounds;
+          // A press between blocks shows as a turnaround at the block's second sample
+          if (i % block_size != 1)
+            ++mid_block_turnarounds;
+        }
+        previous_step = step;
+      }
+
+      logMessage(juce::String(presses) + " presses, " + juce::String(turnarounds) + " turnarounds, "
+                 + juce::String(mid_block_turnarounds) + " inside a block");
+      check(jumps == 0, "every sample follows on from the one before");
+      check(turnarounds > 0 && turnarounds <= presses, "each turnaround comes from a press");
+      check(mid_block_turnarounds > 0, "presses take effect inside the block they land in");
+    }
 
     //==========================================================================
     beginTest("Half speed: playback takes twice as long, in-between samples are interpolated");
