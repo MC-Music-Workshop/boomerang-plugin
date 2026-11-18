@@ -451,29 +451,27 @@ public:
       checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, loop_a, 0.0f), "loop after one pass", gain_tolerance);
     });
 
-    knownBug("#5 THRU MUTE stays silent after Once stops the loop", [&]
+    //==========================================================================
+    beginTest("THRU MUTE stays silent after Once stops the loop");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.engine.onPlayButtonPressed();
-        d.engine.onThruMuteButtonPressed();
-        d.engine.onOnceButtonPressed();
-        checkBuffers(d.run(live), concat(loop_a, silence(600)), "loop once, then silence");
-      });
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onOnceButtonPressed();
+      checkBuffers(d.run(live), concat(loop_a, silence(600)), "loop once, then silence");
     });
 
-    knownBug("#5 THRU MUTE stays silent when the buffer fills", [&]
+    //==========================================================================
+    beginTest("THRU MUTE stays silent when the buffer fills");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        const int max_samples = 240 * 1000;
-        EngineDriver d(block_size);
-        d.engine.onThruMuteButtonPressed();
-        d.engine.onRecordButtonPressed();
-        checkBuffers(d.run(ramp(max_samples + 100)), silence(max_samples + 100), "silent throughout");
-      });
+      const int max_samples = 240 * 1000;
+      EngineDriver d(block_size);
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onRecordButtonPressed();
+      checkBuffers(d.run(ramp(max_samples + 100)), silence(max_samples + 100), "silent throughout");
     });
 
     knownBug("#6 ONCE with nothing recorded doesn't leave Once armed", [&]

@@ -541,7 +541,7 @@ void LooperEngine::processRecording(juce::AudioBuffer<float>& buffer, LoopSlot& 
         {
             // Buffer filled or invalid position - stop recording
             stopRecording();
-            return;  // Exit immediately, don't process remaining samples
+            break;  // Stop writing; THRU MUTE below still applies to the whole block
         }
 
         for (int channel = 0; channel < numChannels; ++channel)
@@ -622,6 +622,9 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
         {
             stopPlayback();
             shouldDisableOnce.store(true);  // Cleared by processAudioThreadRequests()
+            // Stopped from here on: pass the rest of the block through, or silence it under THRU MUTE
+            if (thruMuteState == ThruMuteState::On)
+                buffer.clear(sampleNum + 1, numSamples - sampleNum - 1);
             break;
         }
     }
@@ -692,6 +695,9 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
         {
             stopPlayback();
             shouldDisableOnce.store(true);  // Cleared by processAudioThreadRequests()
+            // Stopped from here on: pass the rest of the block through, or silence it under THRU MUTE
+            if (thruMuteState == ThruMuteState::On)
+                buffer.clear(sample + 1, numSamples - sample - 1);
             break;
         }
     }
