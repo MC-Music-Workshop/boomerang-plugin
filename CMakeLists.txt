@@ -200,8 +200,9 @@ if(PLUGINVAL)
     message(STATUS "Found pluginval: ${PLUGINVAL}")
     # Same flags as the CI validate job, so a local pass means CI should pass too
     add_custom_target(validate
+        # TARGET_BUNDLE_DIR includes the Release/Debug folder JUCE adds when a build type is set
         COMMAND ${PLUGINVAL} --validate
-                "${CMAKE_BINARY_DIR}/Boomerang_artefacts/VST3/Boomerang+.vst3"
+                "$<TARGET_BUNDLE_DIR:Boomerang_VST3>"
                 --strictness-level 5
         DEPENDS Boomerang_VST3
         COMMENT "Validating plugin with pluginval"
