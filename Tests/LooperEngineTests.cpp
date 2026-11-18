@@ -1,4 +1,6 @@
 #include "TestHelpers.h"
+#include <atomic>
+#include <thread>
 
 using namespace test;
 using State = LooperEngine::LooperState;
@@ -155,6 +157,78 @@ public:
     });
 
     //==========================================================================
+    // A click on the REVERSE button reaches the engine from the message thread,
+    // usually while the audio thread is partway through a block. Where the presses
+    // land can't be scripted, so this checks the shape of the output: every sample
+    // is the loop sample next to the one before (each turnaround is clean), and
+    // turnarounds happen inside blocks, not only where a block starts.
+    beginTest("REVERSE pressed while a block is playing turns around inside that block");
+    {
+      const int loop_length = 1000;
+      const int block_size  = 4096;
+      const int num_blocks  = 500;
+
+      EngineDriver d(block_size, 1);
+      d.recordLoop(ramp(loop_length, 0, 1));
+
+      Buffer output(1, block_size * num_blocks);
+      std::atomic<bool> playing { true };
+      std::thread audio_thread([&]
+      {
+        Buffer block(1, block_size);
+        for (int b = 0; b < num_blocks; ++b)
+        {
+          block.clear();
+          d.engine.processBlock(block);
+          output.copyFrom(0, b * block_size, block, 0, 0, block_size);
+        }
+        playing = false;
+      });
+
+      // Busy-wait between presses: sleep granularity on some CI machines is longer than the whole run
+      int presses = 0;
+      while (playing)
+      {
+        d.engine.onReverseButtonPressed();
+        ++presses;
+        const auto until = juce::Time::getHighResolutionTicks() + juce::Time::secondsToHighResolutionTicks(0.0002);
+        while (playing && juce::Time::getHighResolutionTicks() < until) {}
+      }
+      audio_thread.join();
+
+      // Loop sample n holds (n + 1) / 1024, so each output value names the loop position it came from
+      auto positionAt = [&](int i) { return juce::roundToInt(output.getSample(0, i) * 1024.0f) - 1; };
+
+      int jumps = 0, turnarounds = 0, mid_block_turnarounds = 0, previous_step = 0;
+      for (int i = 1; i < output.getNumSamples(); ++i)
+      {
+        int step = positionAt(i) - positionAt(i - 1);
+        if (step == loop_length - 1) step = -1;   // backwards across the loop start
+        if (step == 1 - loop_length) step = 1;    // forwards across the loop end
+        if (step != 1 && step != -1)
+        {
+          ++jumps;
+          continue;
+        }
+
+        if (previous_step != 0 && step != previous_step)
+        {
+          ++turnarounds;
+          // A press between blocks shows as a turnaround at the block's second sample
+          if (i % block_size != 1)
+            ++mid_block_turnarounds;
+        }
+        previous_step = step;
+      }
+
+      logMessage(juce::String(presses) + " presses, " + juce::String(turnarounds) + " turnarounds, "
+                 + juce::String(mid_block_turnarounds) + " inside a block");
+      check(jumps == 0, "every sample follows on from the one before");
+      check(turnarounds > 0 && turnarounds <= presses, "each turnaround comes from a press");
+      check(mid_block_turnarounds > 0, "presses take effect inside the block they land in");
+    }
+
+    //==========================================================================
     beginTest("Half speed: playback takes twice as long, in-between samples are interpolated");
     forEachBlockSize([&](int block_size)
     {
@@ -277,6 +351,34 @@ public:
     });
 
     //==========================================================================
+    // README (STACK): "stacking works during reversed playback so any part can be
+    // recorded forward or reversed"
+    beginTest("Stack in reverse: the new part lines up with reversed playback and plays backwards going forward");
+    forEachBlockSize([&](int block_size)
+    {
+      const float feedback = 0.5f;
+      const Buffer overdub = slice(live, 0, 300);
+      const Buffer stacked_backwards = mix(reversed(loop_a), stack_gain, overdub, feedback);
+
+      EngineDriver d(block_size);
+      d.engine.setFeedback(feedback);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onPlayButtonPressed();   // reversed playback from the loop's end
+      d.engine.onStackButtonPressed();
+      checkBuffers(d.run(overdub), mix(stacked_backwards, 1.0f, overdub, 1.0f), "stacked loop + live while stacking", gain_tolerance);
+
+      d.engine.onStackButtonReleased();
+      checkBuffers(d.run(silence(600)), cycle(stacked_backwards, 600), "the part plays as it was played, in reverse", gain_tolerance);
+
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onPlayButtonPressed();   // forward playback from the start
+      checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, reversed(overdub), feedback), "forward, the stacked part plays backwards", gain_tolerance);
+    });
+
+    //==========================================================================
     beginTest("Stack latch: first press starts, release is ignored, second press ends");
     {
       EngineDriver d(64);
@@ -369,135 +471,123 @@ public:
     }
 
     //==========================================================================
-    // Behaviour believed broken. Each stays here only while its assertions fail
-    // under BOOMERANG_RUN_KNOWN_BUGS=1.
-
-    knownBug("#1 a take recorded with Reverse on plays back", [&]
+    // Recording always runs forward; REVERSE only sets the playback direction
+    beginTest("A take recorded with Reverse on plays backwards");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.onReverseButtonPressed();
-        d.recordLoop(loop_b);
-        const Buffer out = d.run(silence(120));
-        check(firstMismatch(out, loop_b).isEmpty() || firstMismatch(out, reversed(loop_b)).isEmpty(),
-              "one pass holds the take, in either direction - " + firstMismatch(out, reversed(loop_b)));
-      });
+      EngineDriver d(block_size);
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_b);
+      checkBuffers(d.run(silence(240)), cycle(reversed(loop_b), 240), "the take, backwards");
     });
 
-    knownBug("#1 re-recording over an existing loop with Reverse on plays the new take", [&]
+    //==========================================================================
+    beginTest("Re-recording with Reverse on plays the new take, not the old loop");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.run(silence(300));
-        d.engine.onReverseButtonPressed();
-        d.recordLoop(loop_b);
-        const Buffer out = d.run(silence(120));
-        check(firstMismatch(out, loop_b).isEmpty() || firstMismatch(out, reversed(loop_b)).isEmpty(),
-              "one pass holds the new take, in either direction - " + firstMismatch(out, reversed(loop_b)));
-        check(firstMismatch(out, reversed(slice(loop_a, 0, 120))).isEmpty() == false,
-              "the old loop's first 120 samples must not come back (backwards)");
-      });
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.run(silence(300));
+      d.engine.onReverseButtonPressed();
+      d.recordLoop(loop_b);
+      checkBuffers(d.run(silence(120)), reversed(loop_b), "the new take, backwards");
     });
 
-    knownBug("#2 REVERSE pressed while recording keeps the loop length", [&]
+    //==========================================================================
+    beginTest("REVERSE while recording: the take keeps its length and plays backwards");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.onRecordButtonPressed();
-        d.run(slice(loop_a, 0, 100));
-        d.engine.onReverseButtonPressed();
-        d.run(slice(loop_a, 100, 50));
-        d.engine.onRecordButtonPressed();
-        check(d.engine.getState() == State::Playing, "second RECORD starts playback");
-        d.run(silence(150));
-        check(d.engine.checkAndClearLoopWrapped(), "loop is as long as what was recorded (150 samples)");
-      });
+      EngineDriver d(block_size);
+      const Buffer take = slice(loop_a, 0, 150);
+      d.engine.onRecordButtonPressed();
+      d.run(slice(take, 0, 100));
+      d.engine.onReverseButtonPressed();
+      d.run(slice(take, 100, 50));
+      d.engine.onRecordButtonPressed();
+      check(d.engine.getState() == State::Playing, "second RECORD starts playback");
+      checkBuffers(d.run(silence(150)), reversed(take), "the whole take, backwards");
+      check(d.engine.checkAndClearLoopWrapped(), "loop is as long as what was recorded (150 samples)");
     });
 
-    knownBug("#3 reverse at half speed interpolates between adjacent samples", [&]
+    //==========================================================================
+    beginTest("Reverse at half speed interpolates between adjacent samples");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.engine.onPlayButtonPressed();
-        d.engine.onReverseButtonPressed();
-        d.engine.onSlowButtonPressed();
-        d.engine.onPlayButtonPressed();
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onSlowButtonPressed();
+      d.engine.onPlayButtonPressed();
 
-        const Buffer backwards = reversed(loop_a);
-        Buffer expected(2, 600);
-        for (int channel = 0; channel < 2; ++channel)
-          for (int i = 0; i < 300; ++i)
-          {
-            const float here = backwards.getSample(channel, i);
-            const float next = backwards.getSample(channel, (i + 1) % 300);
-            expected.setSample(channel, 2 * i, here);
-            expected.setSample(channel, 2 * i + 1, (here + next) * 0.5f);
-          }
+      const Buffer backwards = reversed(loop_a);
+      Buffer expected(2, 600);
+      for (int channel = 0; channel < 2; ++channel)
+        for (int i = 0; i < 300; ++i)
+        {
+          const float here = backwards.getSample(channel, i);
+          const float next = backwards.getSample(channel, (i + 1) % 300);
+          expected.setSample(channel, 2 * i, here);
+          expected.setSample(channel, 2 * i + 1, (here + next) * 0.5f);
+        }
 
-        checkBuffers(d.run(silence(600)), expected, "reversed half-speed loop");
-      });
+      checkBuffers(d.run(silence(600)), expected, "reversed half-speed loop");
     });
 
-    knownBug("#4 one stack pass at half speed applies the 2.5 dB drop once", [&]
+    //==========================================================================
+    beginTest("One stack pass at half speed applies the 2.5 dB drop once");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.setFeedback(0.0f);
-        d.recordLoop(loop_a);
-        d.engine.onSlowButtonPressed();
-        d.engine.onStackButtonPressed();
-        d.run(silence(600));   // one full pass at half speed
-        d.engine.onStackButtonReleased();
-        d.engine.onSlowButtonPressed();
-        checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, loop_a, 0.0f), "loop after one pass", gain_tolerance);
-      });
+      EngineDriver d(block_size);
+      d.engine.setFeedback(0.0f);
+      d.recordLoop(loop_a);
+      d.engine.onSlowButtonPressed();
+      d.engine.onStackButtonPressed();
+      d.run(silence(600));   // one full pass at half speed
+      d.engine.onStackButtonReleased();
+      d.engine.onSlowButtonPressed();
+      checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, loop_a, 0.0f), "loop after one pass", gain_tolerance);
     });
 
-    knownBug("#5 THRU MUTE stays silent after Once stops the loop", [&]
+    //==========================================================================
+    beginTest("THRU MUTE stays silent after Once stops the loop");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.recordLoop(loop_a);
-        d.engine.onPlayButtonPressed();
-        d.engine.onThruMuteButtonPressed();
-        d.engine.onOnceButtonPressed();
-        checkBuffers(d.run(live), concat(loop_a, silence(600)), "loop once, then silence");
-      });
+      EngineDriver d(block_size);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onOnceButtonPressed();
+      checkBuffers(d.run(live), concat(loop_a, silence(600)), "loop once, then silence");
     });
 
-    knownBug("#5 THRU MUTE stays silent when the buffer fills", [&]
+    //==========================================================================
+    beginTest("THRU MUTE stays silent when the buffer fills");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        const int max_samples = 240 * 1000;
-        EngineDriver d(block_size);
-        d.engine.onThruMuteButtonPressed();
-        d.engine.onRecordButtonPressed();
-        checkBuffers(d.run(ramp(max_samples + 100)), silence(max_samples + 100), "silent throughout");
-      });
+      const int max_samples = 240 * 1000;
+      EngineDriver d(block_size);
+      d.engine.onThruMuteButtonPressed();
+      d.engine.onRecordButtonPressed();
+      checkBuffers(d.run(ramp(max_samples + 100)), silence(max_samples + 100), "silent throughout");
     });
 
-    knownBug("#6 ONCE with nothing recorded doesn't leave Once armed", [&]
+    //==========================================================================
+    beginTest("ONCE with nothing recorded doesn't leave Once armed");
     {
       EngineDriver d(64);
       d.engine.onOnceButtonPressed();
+      check(d.engine.getOnceMode() == LooperEngine::OnceMode::Off, "Once stays off");
       d.recordLoop(loop_a);
       d.run(silence(650));
       check(d.engine.getState() == State::Playing, "the new loop keeps cycling");
-    });
+    }
 
-    knownBug("#7 half-speed playback of a loop longer than 2^23 samples still wraps", [&]
+    //==========================================================================
+    // Needs a real sample rate: 240 s at 44.1 kHz is 10.58M samples, and a
+    // float playhead can't step by 0.5 above 8,388,608
+    beginTest("Half speed past 2^23 samples: playback still wraps, recording still fills the buffer");
     {
-      // Needs a real sample rate: 240 s at 44.1 kHz is 10.58M samples, and a
-      // float playhead can't step by 0.5 above 8,388,608
       const int loop_length = 8400000;
       EngineDriver d(4096, 1, 44100.0);
       Buffer block(1, 4096);
@@ -519,7 +609,14 @@ public:
       d.engine.onPlayButtonPressed();
       process(2 * loop_length);
       check(d.engine.checkAndClearLoopWrapped(), "loop wrapped after one half-speed pass");
-    });
+
+      // Half-speed recording writes one loop sample per two input samples
+      const int max_samples = 240 * 44100;
+      d.engine.onPlayButtonPressed();
+      d.engine.onRecordButtonPressed();
+      process(2 * max_samples + 4096);
+      check(d.engine.getState() == State::Stopped, "half-speed recording stops when the buffer fills");
+    }
   }
 };
 
