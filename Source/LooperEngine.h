@@ -188,6 +188,7 @@ private:
     std::atomic<float> outputVolume { 1.0f };
     std::atomic<float> feedbackAmount { 0.5f };
     std::atomic<bool> stackLatch { false };  // STACK presses toggle overdub instead of holding it (issue #71)
+    std::atomic<int> lastStackedPos { -1 };  // Loop sample the current stack last wrote; stops half speed stacking it twice
 
     // Timing and synchronization
     std::atomic<bool> loopWrapped{false};  // Set when loop cycles to position 0

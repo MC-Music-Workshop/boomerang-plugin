@@ -412,6 +412,7 @@ void LooperEngine::startOverdubbing()
     {
         activeSlot.isRecording.store(true);
         activeSlot.isPlaying.store(true);
+        lastStackedPos.store(-1);  // Nothing stacked yet in this stack
         currentState.store(LooperState::Overdubbing);
         stackMode.store(StackMode::On);
 
@@ -645,20 +646,26 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
     {
         float currentPlayPos = slot.playPosition.load();
         int pos = static_cast<int>(currentPlayPos);
-        
+
+        // At half speed the playhead visits each loop sample twice; stack only on the
+        // first visit, so each pass applies the 2.5 dB drop and adds the input once
+        const bool stackThisSample = (pos != lastStackedPos.exchange(pos));
+
         for (int channel = 0; channel < numChannels; ++channel)
         {
             // Mirror mono input across all loop channels when needed
             const int sourceChannel = (inputChannels > 0) ? juce::jmin(channel, inputChannels - 1) : 0;
             float inputSample = (inputChannels > 0) ? buffer.getSample(sourceChannel, sample) : 0.0f;
-            float loopSample = slot.buffer.getSample(channel, pos);
-            
-            // Overdub: mix input with existing content
-            // Attenuate existing loop by 2.5dB to prevent overloading when stacking
-            constexpr float stackAttenuation = 0.74989420933f; // -2.5dB
-            float attenuatedLoop = loopSample * stackAttenuation;
-            float overdubSample = attenuatedLoop + (inputSample * feedbackAmount.load());
-            slot.buffer.setSample(channel, pos, overdubSample);
+            float overdubSample = slot.buffer.getSample(channel, pos);
+
+            if (stackThisSample)
+            {
+                // Overdub: mix input with existing content
+                // Attenuate existing loop by 2.5dB to prevent overloading when stacking
+                constexpr float stackAttenuation = 0.74989420933f; // -2.5dB
+                overdubSample = overdubSample * stackAttenuation + (inputSample * feedbackAmount.load());
+                slot.buffer.setSample(channel, pos, overdubSample);
+            }
             
             // Apply volume to loop output only, not input (issue #44)
             float scaledLoopOutput = overdubSample * volume;

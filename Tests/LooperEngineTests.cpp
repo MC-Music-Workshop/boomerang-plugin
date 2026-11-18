@@ -436,20 +436,19 @@ public:
       checkBuffers(d.run(silence(600)), expected, "reversed half-speed loop");
     });
 
-    knownBug("#4 one stack pass at half speed applies the 2.5 dB drop once", [&]
+    //==========================================================================
+    beginTest("One stack pass at half speed applies the 2.5 dB drop once");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        EngineDriver d(block_size);
-        d.engine.setFeedback(0.0f);
-        d.recordLoop(loop_a);
-        d.engine.onSlowButtonPressed();
-        d.engine.onStackButtonPressed();
-        d.run(silence(600));   // one full pass at half speed
-        d.engine.onStackButtonReleased();
-        d.engine.onSlowButtonPressed();
-        checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, loop_a, 0.0f), "loop after one pass", gain_tolerance);
-      });
+      EngineDriver d(block_size);
+      d.engine.setFeedback(0.0f);
+      d.recordLoop(loop_a);
+      d.engine.onSlowButtonPressed();
+      d.engine.onStackButtonPressed();
+      d.run(silence(600));   // one full pass at half speed
+      d.engine.onStackButtonReleased();
+      d.engine.onSlowButtonPressed();
+      checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, loop_a, 0.0f), "loop after one pass", gain_tolerance);
     });
 
     knownBug("#5 THRU MUTE stays silent after Once stops the loop", [&]
