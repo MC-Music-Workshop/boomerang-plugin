@@ -58,6 +58,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 
 - Always use the latest major version tag for GitHub Actions (e.g., `actions/checkout@v6`, not `@v4`) unless pinned for a specific reason.
 - Check action repos for current versions before adding new actions to workflows.
+- Action versions are locked to commit SHAs in `.github/workflows/actions.lock` ([gh-actions-lock](https://github.com/github/gh-actions-lock)). After adding or changing any `uses:` line, run `gh actions-lock --no-narrow` and commit the lockfile with the workflow change; never edit it by hand. `--no-narrow` keeps floating major tags (`v7`) instead of rewriting them to full versions (`v7.0.1`). Locked tags no longer float: `@v7` stays on its locked commit until `gh actions-lock --relock --no-narrow` advances it. Check with `gh actions-lock --verify`.
 
 ## CI/CD & Release Process
 
