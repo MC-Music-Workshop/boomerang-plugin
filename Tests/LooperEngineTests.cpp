@@ -369,10 +369,6 @@ public:
     }
 
     //==========================================================================
-    // Behaviour believed broken. Each stays here only while its assertions fail
-    // under BOOMERANG_RUN_KNOWN_BUGS=1.
-
-    //==========================================================================
     // Recording always runs forward; REVERSE only sets the playback direction
     beginTest("A take recorded with Reverse on plays backwards");
     forEachBlockSize([&](int block_size)
@@ -485,10 +481,11 @@ public:
       check(d.engine.getState() == State::Playing, "the new loop keeps cycling");
     }
 
-    knownBug("#7 half-speed playback of a loop longer than 2^23 samples still wraps", [&]
+    //==========================================================================
+    // Needs a real sample rate: 240 s at 44.1 kHz is 10.58M samples, and a
+    // float playhead can't step by 0.5 above 8,388,608
+    beginTest("Half speed past 2^23 samples: playback still wraps, recording still fills the buffer");
     {
-      // Needs a real sample rate: 240 s at 44.1 kHz is 10.58M samples, and a
-      // float playhead can't step by 0.5 above 8,388,608
       const int loop_length = 8400000;
       EngineDriver d(4096, 1, 44100.0);
       Buffer block(1, 4096);
@@ -510,7 +507,14 @@ public:
       d.engine.onPlayButtonPressed();
       process(2 * loop_length);
       check(d.engine.checkAndClearLoopWrapped(), "loop wrapped after one half-speed pass");
-    });
+
+      // Half-speed recording writes one loop sample per two input samples
+      const int max_samples = 240 * 44100;
+      d.engine.onPlayButtonPressed();
+      d.engine.onRecordButtonPressed();
+      process(2 * max_samples + 4096);
+      check(d.engine.getState() == State::Stopped, "half-speed recording stops when the buffer fills");
+    }
   }
 };
 

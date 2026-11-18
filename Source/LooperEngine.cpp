@@ -27,8 +27,8 @@ void LooperEngine::prepare(double newSampleRate, int newSamplesPerBlock, int new
         slot.hasContent.store(false);
         slot.isRecording.store(false);
         slot.isPlaying.store(false);
-        slot.playPosition.store(0.0f);
-        slot.recordPosition.store(0.0f);
+        slot.playPosition.store(0.0);
+        slot.recordPosition.store(0.0);
     }
 
     reset();
@@ -52,8 +52,8 @@ void LooperEngine::reset()
         slot.hasContent.store(false);
         slot.isRecording.store(false);
         slot.isPlaying.store(false);
-        slot.playPosition.store(0.0f);
-        slot.recordPosition.store(0.0f);
+        slot.playPosition.store(0.0);
+        slot.recordPosition.store(0.0);
     }
 }
 
@@ -341,7 +341,7 @@ void LooperEngine::startRecording()
     activeSlot.isRecording.store(true);
     // Always record forward from the start of the buffer: playback reads the loop
     // from 0 to length, and REVERSE only sets the playback direction
-    activeSlot.recordPosition.store(0.0f);
+    activeSlot.recordPosition.store(0.0);
     currentState.store(LooperState::Recording);
     
     // Notify host that record button is on
@@ -373,8 +373,8 @@ void LooperEngine::startPlayback()
     {
         activeSlot.isPlaying.store(true);
         activeSlot.playPosition.store((loopMode.load() == LoopMode::Reverse)
-            ? static_cast<float>(activeSlot.length.load() - 1)
-            : 0.0f);
+            ? static_cast<double>(activeSlot.length.load() - 1)
+            : 0.0);
         currentState.store(LooperState::Playing);
 
         // Notify host that play button is on
@@ -465,12 +465,12 @@ void LooperEngine::toggleDirection()
 
     auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
     // Ensure playhead stays within bounds after direction change
-    float currentPlayPos = activeSlot.playPosition.load();
+    double currentPlayPos = activeSlot.playPosition.load();
     int currentLength = activeSlot.length.load();
     if (currentPlayPos < 0.0f && currentLength > 0)
-        activeSlot.playPosition.store(currentPlayPos + static_cast<float>(currentLength));
-    else if (currentPlayPos >= static_cast<float>(currentLength) && currentLength > 0)
-        activeSlot.playPosition.store(std::fmod(currentPlayPos, static_cast<float>(currentLength)));
+        activeSlot.playPosition.store(currentPlayPos + currentLength);
+    else if (currentPlayPos >= currentLength && currentLength > 0)
+        activeSlot.playPosition.store(std::fmod(currentPlayPos, static_cast<double>(currentLength)));
     
     // Notify host of state change
     if (parameterNotifyCallback)
@@ -537,7 +537,7 @@ void LooperEngine::processRecording(juce::AudioBuffer<float>& buffer, LoopSlot& 
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float currentRecordPos = slot.recordPosition.load();
+        double currentRecordPos = slot.recordPosition.load();
         int writePos = static_cast<int>(currentRecordPos);
         
         // Check bounds BEFORE writing
@@ -588,11 +588,11 @@ void LooperEngine::processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& s
     
     for (int sampleNum = 0; sampleNum < numSamples; ++sampleNum)
     {
-        float currentPlayPos = slot.playPosition.load();
+        double currentPlayPos = slot.playPosition.load();
         for (int channel = 0; channel < numChannels; ++channel)
         {
             int pos = static_cast<int>(currentPlayPos);
-            float frac = currentPlayPos - pos;
+            float frac = static_cast<float>(currentPlayPos - pos);
 
             // A fractional playhead sits between pos and pos + 1 in either direction
             int nextPos = (pos + 1) % slotLength;
@@ -651,7 +651,7 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float currentPlayPos = slot.playPosition.load();
+        double currentPlayPos = slot.playPosition.load();
         int pos = static_cast<int>(currentPlayPos);
 
         // At half speed the playhead visits each loop sample twice; stack only on the
@@ -707,11 +707,11 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
     }
 }
 
-bool LooperEngine::advancePosition(std::atomic<float>& position, int length, float speed)
+bool LooperEngine::advancePosition(std::atomic<double>& position, int length, float speed)
 {
     bool wrapped = false;
     auto loopDirection = loopMode.load();
-    float currentPos = position.load();
+    double currentPos = position.load();
 
     if (loopDirection == LoopMode::Reverse)
     {
@@ -729,7 +729,7 @@ bool LooperEngine::advancePosition(std::atomic<float>& position, int length, flo
         // Wrap to beginning when going past end
         if (currentPos >= length)
         {
-            currentPos = 0.0f;
+            currentPos = 0.0;
             wrapped = true;
         }
     }
@@ -750,5 +750,5 @@ float LooperEngine::getLoopProgress() const
     if (!activeSlot.hasContent.load() || activeSlot.length.load() == 0)
         return 0.0f;
     
-    return activeSlot.playPosition.load() / static_cast<float>(activeSlot.length.load());
+    return static_cast<float>(activeSlot.playPosition.load() / activeSlot.length.load());
 }
