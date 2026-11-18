@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0  # Full history for git version
@@ -103,7 +103,7 @@ jobs:
 
       - name: Cache JUCE build
         id: cache-juce
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             build/JUCE
@@ -133,7 +133,7 @@ jobs:
       # Setup sccache for faster compilation (Windows - works with MSVC)
       - name: Setup sccache
         if: runner.os == 'Windows'
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       # Enable sccache GitHub Actions cache for Windows
       - name: Enable sccache GHA cache
@@ -376,7 +376,7 @@ jobs:
 
       # Upload artifacts
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/*
@@ -409,7 +409,7 @@ jobs:
     steps:
       # Download build artifacts (no checkout/rebuild needed)
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: ${{ matrix.artifact_name }}
           path: dist
