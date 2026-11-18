@@ -277,6 +277,34 @@ public:
     });
 
     //==========================================================================
+    // README (STACK): "stacking works during reversed playback so any part can be
+    // recorded forward or reversed"
+    beginTest("Stack in reverse: the new part lines up with reversed playback and plays backwards going forward");
+    forEachBlockSize([&](int block_size)
+    {
+      const float feedback = 0.5f;
+      const Buffer overdub = slice(live, 0, 300);
+      const Buffer stacked_backwards = mix(reversed(loop_a), stack_gain, overdub, feedback);
+
+      EngineDriver d(block_size);
+      d.engine.setFeedback(feedback);
+      d.recordLoop(loop_a);
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onPlayButtonPressed();   // reversed playback from the loop's end
+      d.engine.onStackButtonPressed();
+      checkBuffers(d.run(overdub), mix(stacked_backwards, 1.0f, overdub, 1.0f), "stacked loop + live while stacking", gain_tolerance);
+
+      d.engine.onStackButtonReleased();
+      checkBuffers(d.run(silence(600)), cycle(stacked_backwards, 600), "the part plays as it was played, in reverse", gain_tolerance);
+
+      d.engine.onPlayButtonPressed();
+      d.engine.onReverseButtonPressed();
+      d.engine.onPlayButtonPressed();   // forward playback from the start
+      checkBuffers(d.run(silence(300)), mix(loop_a, stack_gain, reversed(overdub), feedback), "forward, the stacked part plays backwards", gain_tolerance);
+    });
+
+    //==========================================================================
     beginTest("Stack latch: first press starts, release is ignored, second press ends");
     {
       EngineDriver d(64);
