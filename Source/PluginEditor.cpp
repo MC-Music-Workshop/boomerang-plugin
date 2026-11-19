@@ -246,31 +246,32 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
                 return;
             }
             float shadowDepth = 4.0f;  // How "deep" the button appears pressed
-            
+            auto boundsF = bounds.toFloat();  // Gradient points are floats
+
             // Dark shadow on top edge (light coming from above)
             g.setGradientFill(juce::ColourGradient(
-                juce::Colours::black.withAlpha(0.6f), 
-                bounds.getX(), bounds.getY(),
+                juce::Colours::black.withAlpha(0.6f),
+                boundsF.getX(), boundsF.getY(),
                 juce::Colours::transparentBlack,
-                bounds.getX(), bounds.getY() + shadowDepth * 2,
+                boundsF.getX(), boundsF.getY() + shadowDepth * 2,
                 false));
             g.fillRect(bounds.getX(), bounds.getY(), bounds.getWidth(), (int)(shadowDepth * 2));
             
             // Dark shadow on left edge
             g.setGradientFill(juce::ColourGradient(
                 juce::Colours::black.withAlpha(0.5f),
-                bounds.getX(), bounds.getY(),
+                boundsF.getX(), boundsF.getY(),
                 juce::Colours::transparentBlack,
-                bounds.getX() + shadowDepth * 2, bounds.getY(),
+                boundsF.getX() + shadowDepth * 2, boundsF.getY(),
                 false));
             g.fillRect(bounds.getX(), bounds.getY(), (int)(shadowDepth * 2), bounds.getHeight());
             
             // Subtle highlight on bottom edge (recessed surface catching light)
             g.setGradientFill(juce::ColourGradient(
                 juce::Colours::transparentWhite,
-                bounds.getX(), bounds.getBottom() - shadowDepth,
+                boundsF.getX(), boundsF.getBottom() - shadowDepth,
                 juce::Colours::white.withAlpha(0.15f),
-                bounds.getX(), bounds.getBottom(),
+                boundsF.getX(), boundsF.getBottom(),
                 false));
             g.fillRect(bounds.getX(), bounds.getBottom() - (int)shadowDepth, bounds.getWidth(), (int)shadowDepth);
             
@@ -297,7 +298,7 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
             // Release flash - bright pulse that fades
             if (!button.isDown() && flashCounter > 0)
             {
-                float alpha = flashCounter / 5.0f * 0.5f;  // Fade from 0.5 to 0
+                float alpha = static_cast<float>(flashCounter) / 5.0f * 0.5f;  // Fade from 0.5 to 0
                 g.setColour(colour.withAlpha(alpha));
                 g.fillRect(bounds);
             }
@@ -323,7 +324,7 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
         }
         else if (recordBtnFlashCounter > 0)  // Release flash
         {
-            float alpha = recordBtnFlashCounter / 5.0f * 0.5f;
+            float alpha = static_cast<float>(recordBtnFlashCounter) / 5.0f * 0.5f;
             g.setColour(juce::Colours::red.withAlpha(alpha));
             g.fillRect(recordButton.getBounds());
         }
@@ -375,7 +376,7 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
     // Draw LEDs at the skin's positions (scaled coordinates)
-    float scale = getWidth() / 700.0f;
+    float scale = static_cast<float>(getWidth()) / 700.0f;
     int ledSize = static_cast<int>(static_cast<float>(skin->ledSize) * scale);
     auto scaled = [scale](juce::Point<int> p) { return (p.toFloat() * scale).toInt(); };
 
@@ -428,7 +429,7 @@ void BoomerangAudioProcessorEditor::paint (juce::Graphics& g)
         
         for (int i = 0; i < numTeeth * 2; ++i)
         {
-            float angle = (float)i * juce::MathConstants<float>::pi / numTeeth;
+            float angle = (float)i * juce::MathConstants<float>::pi / (float)numTeeth;
             float r = (i % 2 == 0) ? gearRadius : innerRadius;
             float x = centerX + std::cos(angle) * r;
             float y = centerY + std::sin(angle) * r;
@@ -455,15 +456,15 @@ void BoomerangAudioProcessorEditor::resized()
     auto bounds = getLocalBounds();
     
     // Calculate scale factor based on current width (base width is 700)
-    float scale = getWidth() / 700.0f;
+    float scale = static_cast<float>(getWidth()) / 700.0f;
     
     // Helper lambda to scale positions
     auto scaleRect = [scale](juce::Rectangle<int> r) {
         return juce::Rectangle<int>(
-            static_cast<int>(r.getX() * scale),
-            static_cast<int>(r.getY() * scale),
-            static_cast<int>(r.getWidth() * scale),
-            static_cast<int>(r.getHeight() * scale)
+            static_cast<int>(static_cast<float>(r.getX()) * scale),
+            static_cast<int>(static_cast<float>(r.getY()) * scale),
+            static_cast<int>(static_cast<float>(r.getWidth()) * scale),
+            static_cast<int>(static_cast<float>(r.getHeight()) * scale)
         );
     };
 
@@ -643,16 +644,16 @@ void BoomerangAudioProcessorEditor::drawLED(juce::Graphics& g, int x, int y, int
     {
         // Glowing effect when lit
         g.setColour(colour.withAlpha(0.3f));
-        g.fillEllipse(x - size, y - size, size * 2, size * 2);  // Outer glow
-        
+        g.fillEllipse(juce::Rectangle<int>(x - size, y - size, size * 2, size * 2).toFloat());  // Outer glow
+
         g.setColour(colour);
-        g.fillEllipse(x - size/2, y - size/2, size, size);  // LED center
+        g.fillEllipse(juce::Rectangle<int>(x - size/2, y - size/2, size, size).toFloat());  // LED center
     }
     else
     {
         // Dim when off
         g.setColour(colour.withAlpha(0.1f));
-        g.fillEllipse(x - size/2, y - size/2, size, size);
+        g.fillEllipse(juce::Rectangle<int>(x - size/2, y - size/2, size, size).toFloat());
     }
 }
 

@@ -155,8 +155,8 @@ private:
         std::atomic<bool> hasContent { false };
         std::atomic<bool> isRecording { false };
         std::atomic<bool> isPlaying { false };
-        std::atomic<float> playPosition { 0.0f };
-        std::atomic<float> recordPosition { 0.0f };
+        std::atomic<double> playPosition { 0.0 };   // double: a float playhead can't step by 0.5 past 2^23 samples
+        std::atomic<double> recordPosition { 0.0 };
         float fadeInGain = 1.0f;
         float fadeOutGain = 1.0f;
     };
@@ -188,6 +188,7 @@ private:
     std::atomic<float> outputVolume { 1.0f };
     std::atomic<float> feedbackAmount { 0.5f };
     std::atomic<bool> stackLatch { false };  // STACK presses toggle overdub instead of holding it (issue #71)
+    std::atomic<int> lastStackedPos { -1 };  // Loop sample the current stack last wrote; stops half speed stacking it twice
 
     // Timing and synchronization
     std::atomic<bool> loopWrapped{false};  // Set when loop cycles to position 0
@@ -222,7 +223,7 @@ private:
     void processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
     void processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
 
-    bool advancePosition(std::atomic<float>& position, int length, float speed);
+    bool advancePosition(std::atomic<double>& position, int length, float speed);
     void switchToNextLoopSlot();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LooperEngine)
