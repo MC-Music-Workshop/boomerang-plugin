@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run tests",
+      "detail": "Build BoomerangTests and run the audio and editor tests",
+      "type": "shell",
+      "command": "cmake --build build --target BoomerangTests -j8 && ctest --test-dir build --output-on-failure",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

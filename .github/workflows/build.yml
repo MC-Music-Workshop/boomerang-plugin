@@ -162,8 +162,9 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
-      # Known-input / known-output audio tests (Tests/)
-      - name: Run Audio Tests
+      # Known-input / known-output audio tests and editor tests (Tests/).
+      # The editor tests use an in-memory window, so no display is needed
+      - name: Run Tests
         run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
 
       # List build artifacts for debugging

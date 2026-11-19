@@ -240,6 +240,7 @@ add_executable(BoomerangTests
     Tests/TestMain.cpp
     Tests/LooperEngineTests.cpp
     Tests/ProcessorTests.cpp
+    Tests/EditorTests.cpp
 )
 
 # The plugin's shared code is a static library with the JUCE modules compiled in.

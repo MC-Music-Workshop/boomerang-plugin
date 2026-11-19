@@ -30,5 +30,9 @@ lipo -info build/Boomerang_artefacts/VST3/Boomerang+.vst3/Contents/MacOS/Boomera
 lipo -info build/Boomerang_artefacts/AU/Boomerang+.component/Contents/MacOS/Boomerang+
 
 echo ""
+echo "Running the audio and editor tests..."
+ctest --test-dir build --output-on-failure
+
+echo ""
 echo "Validating VST3 with pluginval..."
 cmake --build build --target validate
