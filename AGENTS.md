@@ -32,6 +32,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 - Host validation: `cd build && make validate` (builds the VST3 if needed, then runs pluginval at CI's strictness level 5; `./build.sh` runs it automatically at the end). Install with `brew install --cask pluginval`, then re-run cmake so it gets found; the cask doesn't put `pluginval` on `PATH`, but CMake looks in `/Applications`.
 - AU validation (macOS): `cd build && make validate-au` (builds and installs the AU, then runs `auval -v aumf BOOM MCMW`).
 - Version is set in `CMakeLists.txt` via `VERSION` and `BOOMERANG_VERSION_SUFFIX` variables.
+- Link-time optimization: `-DBOOMERANG_LTO=ON` (default). CI builds branches/PRs with `OFF` and only `v*` tag (release) builds with `ON`, because LTO is most of the CI build time (2-4 min of linking per OS; compiling is cached by ccache/sccache). Pass `-DBOOMERANG_LTO=OFF` for faster local iteration.
 
 ## Coding Style & Naming Conventions
 
@@ -55,8 +56,8 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 
 ## GitHub Actions Best Practices
 
-- Always use the latest major version tag for GitHub Actions (e.g., `actions/checkout@v6`, not `@v4`) unless pinned for a specific reason.
-- Check action repos for current versions before adding new actions to workflows.
+- Reference actions by their latest full version (`actions/checkout@v7.0.1`), not a floating major tag (`@v7`). Dependabot (`.github/dependabot.yml`) opens a weekly PR for each new release, so versions stay current without floating.
+- Action versions are locked to commit SHAs in `.github/workflows/actions.lock` ([gh-actions-lock](https://github.com/github/gh-actions-lock)). Dependabot updates the lockfile in its own PRs. After adding or changing a `uses:` line by hand, run `gh actions-lock` (it rewrites a new `@v7` to the newest full version) and commit the lockfile with the workflow change; never edit it by hand. Check with `gh actions-lock --verify`.
 
 ## CI/CD & Release Process
 

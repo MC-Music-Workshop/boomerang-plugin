@@ -86,13 +86,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.find-build.outputs.tag }}
           fetch-depth: 0  # tags, for the previous-tag lookup in the release notes
 
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8.0.2
         with:
           name: boomerang-macos
           path: artifacts/boomerang-macos
@@ -100,7 +100,7 @@ jobs:
           run-id: ${{ needs.find-build.outputs.run_id }}
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8.0.2
         with:
           name: boomerang-windows
           path: artifacts/boomerang-windows
@@ -108,7 +108,7 @@ jobs:
           run-id: ${{ needs.find-build.outputs.run_id }}
 
       - name: Download Linux artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8.0.2
         with:
           name: boomerang-linux
           path: artifacts/boomerang-linux
@@ -211,7 +211,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: ${{ needs.find-build.outputs.tag }}
           # Tags with a "-" (e.g. v2.6.1-beta.1) are pre-releases, so /releases/latest
