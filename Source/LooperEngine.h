@@ -109,8 +109,8 @@ public:
     ThruMuteState getThruMuteState() const { return thruMute.load(); }
     SpeedMode getSpeedMode() const { return speedMode.load(); }
 
-    bool isRecording() const { auto state = currentState.load(); return state == LooperState::Recording || state == LooperState::Overdubbing; }
-    bool isPlaying() const { auto state = currentState.load(); return state == LooperState::Playing || state == LooperState::Overdubbing; }
+    bool isRecording() const { auto state = currentState.load(); return state == LooperState::Recording || state == LooperState::Overdubbing || state == LooperState::ContinuousReverse; }
+    bool isPlaying() const   { auto state = currentState.load(); return state == LooperState::Playing   || state == LooperState::Overdubbing || state == LooperState::ContinuousReverse; }
     float getLoopProgress() const;
     int getCurrentLoopSlot() const { return activeLoopSlot.load(); }
     
@@ -190,6 +190,10 @@ private:
     std::atomic<bool> stackLatch { false };  // STACK presses toggle overdub instead of holding it (issue #71)
     std::atomic<int> lastStackedPos { -1 };  // Loop sample the current stack last wrote; stops half speed stacking it twice
 
+    // Continuous reverse (issue #14)
+    bool reverseAtRecordStart = false;  // REVERSE was on when the take began, so its end enters continuous reverse (button handlers only)
+    int continuousReverseStep = -1;     // Direction the continuous-reverse head moves this pass (audio thread once running)
+
     // Timing and synchronization
     std::atomic<bool> loopWrapped{false};  // Set when loop cycles to position 0
     
@@ -209,6 +213,8 @@ private:
     void startPlayback();
     void stopPlayback();
     void startOverdubbing();
+    void startContinuousReverse();
+    void stopContinuousReverse();
     void stopOverdubbing();
     void toggleThruMute();
     void toggleDirection();
@@ -222,6 +228,7 @@ private:
     void processRecording(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
     void processPlayback(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
     void processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
+    void processContinuousReverse(juce::AudioBuffer<float>& buffer, LoopSlot& slot);
 
     bool advancePosition(std::atomic<double>& position, int length, float speed);
     void switchToNextLoopSlot();

@@ -23,7 +23,7 @@ Refer to JUCE_TIPS_AND_TRICKS.md for JUCE-specific best practices, debugging tec
 
 ## Build, Test, and Development Commands
 
-- Full build: `./build.sh` (cleans, configures, and builds; installs via COPY_PLUGIN_AFTER_BUILD).
+- Full build: `./build.sh` (cleans, configures, builds, runs the tests, then pluginval; installs via COPY_PLUGIN_AFTER_BUILD).
 - Incremental build from build dir: `cd build && make -j8` (builds and auto-installs changed targets).
 - After committing: `cd build && make -j8` (git hash updates automatically at build time; only PluginEditor.cpp recompiles).
 - Note: Plugins auto-install to system directories when rebuilt via COPY_PLUGIN_AFTER_BUILD.
@@ -98,7 +98,10 @@ BOOMERANG_RUN_KNOWN_BUGS=1 ./build/BoomerangTests  # also run the known-bug test
 
 - `Tests/LooperEngineTests.cpp`: the engine on its own (record, play, reverse, half speed, Once, stack, buffer full).
 - `Tests/ProcessorTests.cpp`: the processor through its host parameters (input source, mono input, transport, saved state), plus re-recording the way a host-mapped pedal drives it.
+- `Tests/EditorTests.cpp`: the plugin window clicked with the mouse, checking what reaches the looper and which LEDs are drawn lit, on every skin.
 - `Tests/TestHelpers.h`: test signals, the `EngineDriver` / `ProcessorDriver` that feed audio in blocks, and the `BoomerangTest` base class.
+
+Every change gets a test: an audio test for the engine or processor, an editor test for the window (buttons, LEDs, click handling). `./build.sh`, CI (all three platforms) and the release workflow all run the suite, so a failing test blocks the build and the release.
 
 When adding a test:
 
@@ -108,7 +111,9 @@ When adding a test:
 - If the test exposes a bug you are not fixing now, wrap it in `knownBug("#N description", ...)`. It is skipped by default and runs with `BOOMERANG_RUN_KNOWN_BUGS=1`. When the bug is fixed, turn it back into a normal `beginTest`.
 - The tests link the plugin's shared code, so they use the real `LooperEngine` and `BoomerangAudioProcessor`. The test app runs a JUCE message loop on the main thread; `flushMessageQueue()` waits for the engine's state echoes to reach the host parameters.
 
-The tests do not cover the editor. Check UI behavior in a plugin host or the JUCE Standalone build (`Boomerang_artefacts/Standalone`). When reproducing issues, note loop length, direction, Once/Stack states, and host buffer size.
+Editor tests (`EditorTests.cpp`) open the window in a `VirtualWindow`: a desktop window that exists only in memory. Mouse events fed to it run through JUCE's whole mouse handling, the way a real click does, so they reproduce mouse-pipeline bugs such as the release flash below (#71). Nothing appears on screen, the real pointer never moves, and no display is needed (they pass on Linux with no X server). Click footswitches with `EditorDriver::click()` and read the LEDs with `litLeds()`, which samples a picture of the window at each LED's centre.
+
+What they don't cover: anything drawn between events (the virtual window never paints, which matches the invisible footswitches but not visible buttons), hover (JUCE takes it from the real pointer), and host-specific window behaviour. Check those in a plugin host or the JUCE Standalone build (`Boomerang_artefacts/Standalone`). When reproducing issues, note loop length, direction, Once/Stack states, and host buffer size.
 
 ## Commit & Pull Request Guidelines
 
@@ -129,7 +134,8 @@ The tests do not cover the editor. Check UI behavior in a plugin host or the JUC
 - **Bundle version (Finder Get Info, AU version)** comes from `juce_add_plugin VERSION`, which is the numeric `X.Y.Z` taken from the git tag. Without it, JUCE falls back to `project(VERSION)`, the placeholder `2.0.0`.
 - releases/ folder is git-ignored; use GitHub Releases for distribution instead.
 - **Invisible (alpha 0) footswitch buttons + `onStateChange`**: on mouse-up, JUCE `Button::mouseUp` flashes a button that was never painted in its down state (`lastStatePainted`) back to `buttonDown` for 100ms. Alpha-0 components are never painted, so every click fires a phantom second press/release through `onStateChange`. Gate press detection on `isMouseButtonDown()` (see the STACK handler, issue #71). `onClick` isn't affected.
-- **Testing the UI without the user's instance**: run a second standalone with isolated settings, `HOME=<tmp dir> "$BOOM_STANDALONE_PATH/Contents/MacOS/Boomerang+" &`, then kill it by PID. Scripted `setState()` / engine calls don't reproduce real mouse behavior (they missed the flash above), so confirm click behavior by hand.
+- **Testing the UI**: write an editor test (see [Testing Guidelines](#testing-guidelines)). Its clicks do reproduce the flash above; scripted `setState()` / engine calls don't. To look at the real window, run a second standalone with isolated settings, `HOME=<tmp dir> "$BOOM_STANDALONE_PATH/Contents/MacOS/Boomerang+" &`, then kill it by PID.
+- **Don't drive the standalone with OS-level synthetic clicks** (CGEvent, `cliclick`): they move the user's real pointer and land in whatever window is on top at that point. Feeding events to a real JUCE window in-process doesn't work either: on macOS JUCE asks the window server whether the click point is really on the window, so a covered or off-screen window drops every click. That's why the editor tests use `VirtualWindow`.
 - Release notes style preference: concise Markdown with top-level title like `v2.0.0-beta-1 (JUCE port)`, sections for What's new, Installation (macOS and Windows/Linux), Known issues, and How to help (link to new issue form). Tone should be direct and instructional.
 
 ## Tech Debt

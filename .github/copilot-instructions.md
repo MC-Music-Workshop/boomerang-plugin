@@ -71,7 +71,7 @@ installer-resources/ → macOS installer templates
 - **No allocation in audio thread:** Avoid `DBG()`, `new`, `malloc`, or string operations in `processBlock()`
 - **Parameter callbacks:** Treat `parameterChanged()` as if it's on the audio thread
 - **LookAndFeels:** Declare before components that use them (destruction order matters)
-- **Testing:** Always validate with pluginval before releases
+- **Testing:** Run `BoomerangTests` (audio and editor tests) after every change; validate with pluginval before releases
 
 ## Build, Test, and Development
 
@@ -93,15 +93,19 @@ cd build && make -j8
 ### Testing
 
 ```bash
+# Audio and editor tests (./build.sh and CI run these too)
+cmake --build build --target BoomerangTests -j8 && ctest --test-dir build --output-on-failure
+
 # Run VST3 compliance tests
-pluginval --validate build/Boomerang_artefacts/VST3/Boomerang.vst3
+cd build && make validate
 
 # Manual testing: use plugin host or standalone
 open build/Boomerang_artefacts/Standalone/Boomerang+.app
 ```
 
 **Testing Guidelines:**
-- No automated unit test suite - validate via plugin host or Standalone build
+- `Tests/` holds automated known-input / known-output audio tests and editor tests that click the plugin window and check its LEDs. See the Testing Guidelines in `AGENTS.md` for how to write them.
+- Changes to the engine or processor get an audio test; changes to the window (buttons, LEDs, click handling) get an editor test.
 - When reproducing issues, note: loop length, direction, Once/Stack states, host buffer size
 - Use GigPerformer or AudioPluginHost for quick iteration
 

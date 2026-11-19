@@ -87,6 +87,9 @@ void LooperEngine::processBlock(juce::AudioBuffer<float>& buffer)
             break;
 
         case LooperState::ContinuousReverse:
+            processContinuousReverse(buffer, activeSlot);
+            break;
+
         case LooperState::BufferFilled:
             // No processing defined yet
             break;
@@ -130,13 +133,20 @@ void LooperEngine::onRecordButtonPressed()
             // Check if we've recorded anything yet
             if (activeSlot.recordPosition.load() > 0) 
             {
-                // Stop recording, start playback
+                // README, DIRECTION: with REVERSE on before the take began, the end of the
+                // take enters continuous reverse. REVERSE pressed during the take only
+                // arms reversed playback.
+                const bool continuous = reverseAtRecordStart && loopMode.load() == LoopMode::Reverse;
                 stopRecording();
-                startPlayback();
+                if (continuous)
+                    startContinuousReverse();
+                else
+                    startPlayback();
             }
             break;
 
         case LooperState::Playing:
+        case LooperState::ContinuousReverse:
             // Stop playing and start new recording
             stopPlayback();
             startRecording();
@@ -147,7 +157,6 @@ void LooperEngine::onRecordButtonPressed()
             stopOverdubbing();
             break;
 
-        case LooperState::ContinuousReverse:
         case LooperState::BufferFilled:
             break;
     }
@@ -329,6 +338,13 @@ void LooperEngine::onReverseButtonPressed()
         return;  // Another thread is already processing a button press
     
     toggleDirection();
+
+    // Turning REVERSE off ends continuous reverse: recording stops and the loop plays on forwards
+    if (currentState.load() == LooperState::ContinuousReverse)
+    {
+        stopContinuousReverse();
+        currentState.store(LooperState::Playing);
+    }
     
     stateTransitionInProgress.store(false);
 }
@@ -339,6 +355,7 @@ void LooperEngine::startRecording()
     auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
     
     activeSlot.isRecording.store(true);
+    reverseAtRecordStart = (loopMode.load() == LoopMode::Reverse);
     // Always record forward from the start of the buffer: playback reads the loop
     // from 0 to length, and REVERSE only sets the playback direction
     activeSlot.recordPosition.store(0.0);
@@ -395,6 +412,8 @@ void LooperEngine::stopPlayback()
     // (in Latch mode the stack is usually still running when STOP or Once ends playback - issue #71)
     if (currentState.load() == LooperState::Overdubbing)
         stopOverdubbing();
+    else if (currentState.load() == LooperState::ContinuousReverse)
+        stopContinuousReverse();
 
     activeSlot.isPlaying.store(false);
     currentState.store(LooperState::Stopped);
@@ -438,6 +457,41 @@ void LooperEngine::stopOverdubbing()
     // Notify host of stack mode off (stackState output, not stack input - issue #71)
     if (parameterNotifyCallback)
         parameterNotifyCallback(ParameterIDs::stackState, 0.0f);
+}
+
+// Plays the take backwards while recording over it (issue #14)
+void LooperEngine::startContinuousReverse()
+{
+    auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
+
+    if (activeSlot.hasContent.load())
+    {
+        // The first pass reads the take from its end
+        continuousReverseStep = -1;
+        activeSlot.playPosition.store(static_cast<double>(activeSlot.length.load() - 1));
+        activeSlot.isRecording.store(true);
+        activeSlot.isPlaying.store(true);
+        currentState.store(LooperState::ContinuousReverse);
+
+        // RECORD and PLAY both stay lit in this mode
+        if (parameterNotifyCallback)
+        {
+            parameterNotifyCallback(ParameterIDs::record, 1.0f);
+            parameterNotifyCallback(ParameterIDs::play, 1.0f);
+            parameterNotifyCallback(ParameterIDs::playState, 1.0f);
+        }
+    }
+}
+
+// Stops recording over the loop; the caller sets the next state
+void LooperEngine::stopContinuousReverse()
+{
+    auto& activeSlot = loopSlots[static_cast<size_t>(activeLoopSlot.load())];
+
+    activeSlot.isRecording.store(false);
+
+    if (parameterNotifyCallback)
+        parameterNotifyCallback(ParameterIDs::record, 0.0f);
 }
 
 void LooperEngine::toggleThruMute()
@@ -704,6 +758,53 @@ void LooperEngine::processOverdubbing(juce::AudioBuffer<float>& buffer, LoopSlot
                 buffer.clear(sample + 1, numSamples - sample - 1);
             break;
         }
+    }
+}
+
+// Continuous reverse (README, DIRECTION): each pass plays the pass before it
+// backwards while recording the live input over it. The head reads a loop sample,
+// writes the input in its place, and turns around at each end of the loop, so every
+// pass reads back what the previous pass wrote, in the opposite order.
+// Always runs at full speed.
+void LooperEngine::processContinuousReverse(juce::AudioBuffer<float>& buffer, LoopSlot& slot)
+{
+    int numSamples = buffer.getNumSamples();
+    const int inputChannels = buffer.getNumChannels();
+    auto thruMuteState = thruMute.load();
+    int slotLength = slot.length.load();
+    float volume = outputVolume.load();  // Apply volume to loop output only (issue #44)
+
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        int pos = static_cast<int>(slot.playPosition.load());
+
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            // Mirror mono input across all loop channels when needed
+            const int sourceChannel = (inputChannels > 0) ? juce::jmin(channel, inputChannels - 1) : 0;
+            float inputSample = (inputChannels > 0) ? buffer.getSample(sourceChannel, sample) : 0.0f;
+            float loopSample = slot.buffer.getSample(channel, pos);
+            slot.buffer.setSample(channel, pos, inputSample);
+
+            float scaledLoopOutput = loopSample * volume;
+
+            // Thru mute handling: when ON, only output the reversed loop; when OFF, mix with input
+            if (thruMuteState == ThruMuteState::On)
+                buffer.setSample(channel, sample, scaledLoopOutput);
+            else
+                buffer.setSample(channel, sample, scaledLoopOutput + inputSample);
+        }
+
+        // At either end, stay on the sample just written and turn around: it is the
+        // newest input, so the next pass starts with it
+        int nextPos = pos + continuousReverseStep;
+        if (nextPos < 0 || nextPos >= slotLength)
+        {
+            continuousReverseStep = -continuousReverseStep;
+            nextPos = pos;
+            loopWrapped.store(true);
+        }
+        slot.playPosition.store(static_cast<double>(nextPos));
     }
 }
 

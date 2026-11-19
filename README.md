@@ -39,8 +39,9 @@ After many false starts, plugin framework changes, and frustrating bugs, I've fi
 - reverse
 - half speed
 - through mute
+- continuous reverse (play a reverse solo live)
 
-I haven't figured out the live-reverse special mode yet. And there are a few bugs that I need to fix before taking it out of beta. 
+There are a few bugs that I need to fix before taking it out of beta. 
 
 But it's ready.
 

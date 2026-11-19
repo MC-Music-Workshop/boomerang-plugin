@@ -87,6 +87,23 @@ inline Buffer cycle(const Buffer& loop, int num_samples, int start = 0)
   return out;
 }
 
+// What continuous reverse puts out while `input` is played over a loop recorded
+// from `take`: the take backwards, then each loop-length stretch of the input
+// backwards, one pass late
+inline Buffer reversedPasses(const Buffer& take, const Buffer& input)
+{
+  const int length = take.getNumSamples();
+  const Buffer recorded = concat(take, input);
+  Buffer out(input.getNumChannels(), input.getNumSamples());
+  for (int channel = 0; channel < out.getNumChannels(); ++channel)
+    for (int n = 0; n < out.getNumSamples(); ++n)
+    {
+      const int pass = n / length;
+      out.setSample(channel, n, recorded.getSample(channel, pass * length + (length - 1 - n % length)));
+    }
+  return out;
+}
+
 // a * gain_a + b * gain_b, sample by sample
 inline Buffer mix(const Buffer& a, float gain_a, const Buffer& b, float gain_b)
 {

@@ -82,6 +82,7 @@ Group commits into these categories:
 
 ## Pre-Completion Checklist
 
+- [ ] Tests pass: CI's Build run for the release commit is green (it runs `BoomerangTests` on every platform), and so does a local `./build.sh`
 - [ ] Version numbers match in `CMakeLists.txt` and `build-installer.sh`
 - [ ] Release notes saved to `releases/vX.X.X-alpha-N/release-notes.md`
 - [ ] Known issues reference current open GitHub issues
