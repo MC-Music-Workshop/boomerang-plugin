@@ -115,6 +115,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         "Slow",
         false));  // momentary button
 
+    // Record state indicator - on while recording (for external REC LED).
+    // Version hint 3: added after the hint-2 parameters (see Input Source)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::recordState, 3),
+        "Record State",
+        false));  // read-only state indicator
+
     return layout;
 }
 
@@ -209,17 +216,18 @@ void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, 
     {
         looperEngine->onReverseButtonPressed();
     }
-    // Action buttons - trigger on every toggle edge since GP uses toggle widgets
-    // The updatingFromInternalState flag prevents circular calls
+    // Action buttons are momentary: act on the press edge only. Acting on both
+    // edges double-fires: e.g. PLAY/STOP during record would stop recording on
+    // press, then start playback on release (issue #66). The engine never echoes
+    // to these inputs (state goes to the *State outputs), so every press is a
+    // real 0 -> 1 change.
     else if (parameterID == ParameterIDs::record)
     {
-        looperEngine->onRecordButtonPressed();
+        if (buttonPressed)
+            looperEngine->onRecordButtonPressed();
     }
     else if (parameterID == ParameterIDs::play)
     {
-        // Act on the press edge only (momentary widget). Acting on both edges
-        // double-fires: e.g. PLAY/STOP during record would stop recording on
-        // press, then start playback on release (issue #66).
         if (buttonPressed)
             looperEngine->onPlayButtonPressed();
     }
@@ -532,6 +540,8 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
         onceParam->setValueNotifyingHost(0.0f);  // Once off
     if (auto* cycleParam = apvts.getParameter(ParameterIDs::loopCycle))
         cycleParam->setValueNotifyingHost(0.0f);  // No pulse
+    if (auto* recordParam = apvts.getParameter(ParameterIDs::recordState))
+        recordParam->setValueNotifyingHost(0.0f);  // Not recording
     
     // Reset engine to default state (Normal speed, Once off, etc.)
     looperEngine->resetTransientState();

@@ -65,9 +65,9 @@ public:
 
       ProcessorDriver d(block_size);
       d.set(ParameterIDs::inputSource, InputSource::right);
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(input);
-      d.set(ParameterIDs::record, 0.0f);
+      d.tap(ParameterIDs::record);
       checkBuffers(d.run(silence(450)), cycle(bothChannelsFrom(input, 1), 450), "loop holds the right input on both sides");
     });
 
@@ -79,9 +79,9 @@ public:
       ProcessorDriver d(block_size, true);
       checkBuffers(d.run(loop_a), bothChannelsFrom(loop_a, 0), "dry signal on both sides");
 
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(loop_a);
-      d.set(ParameterIDs::record, 0.0f);
+      d.tap(ParameterIDs::record);
       checkBuffers(d.run(silence(450)), cycle(bothChannelsFrom(loop_a, 0), 450), "loop on both sides");
     });
 
@@ -91,11 +91,11 @@ public:
     {
       ProcessorDriver d(block_size);
 
-      d.set(ParameterIDs::record, 1.0f);
-      check(d.engine().getState() == State::Recording, "record on starts recording");
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Recording, "a RECORD tap starts recording");
       d.run(loop_a);
-      d.set(ParameterIDs::record, 0.0f);
-      check(d.engine().getState() == State::Playing, "record off starts playback");
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Playing, "a second RECORD tap starts playback");
       checkBuffers(d.run(silence(600)), cycle(loop_a, 600), "recorded loop plays");
 
       d.set(ParameterIDs::stack, 1.0f);
@@ -133,9 +133,9 @@ public:
       d.set(ParameterIDs::volume, 0.5f);
       d.set(ParameterIDs::feedback, 1.0f);
       d.set(ParameterIDs::stackLatch, 1.0f);
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(loop_a);
-      d.set(ParameterIDs::record, 0.0f);
+      d.tap(ParameterIDs::record);
       checkBuffers(d.run(silence(300)), mix(loop_a, 0.5f, loop_a, 0.0f), "volume halves the loop");
 
       d.tap(ParameterIDs::stack);
@@ -175,15 +175,13 @@ public:
 static ProcessorTests processorTests;
 
 //==============================================================================
-// Re-recording through the `record` host parameter, the way a MIDI pedal
-// mapped by the host drives it.
+// RECORD and PLAY through their host parameters, the way a momentary MIDI pedal
+// mapped by the host drives them: 1 on press, 0 on release.
 //
-// Reported symptom: pressing RECORD, playing, and pressing RECORD again
-// sometimes plays the old loop instead of the new take. Through a pedal that
-// flips the parameter on each press this does not reproduce (first two tests).
-// It does reproduce with Reverse engaged: see known bug #1 in
-// LooperEngineTests.cpp. The known bugs here are other ways a pedal press gets
-// lost or doubled, found while looking for it.
+// Input parameters (`record`, `play`, ...) only carry presses; the plugin never
+// echoes to them. State goes out on the read-only *State outputs (`recordState`,
+// `playState`, ...), which a pedal LED follows through its own CC. An echo to an
+// input left it at 1, so the pedal's next press changed nothing and was lost.
 class RerecordTests : public BoomerangTest
 {
 public:
@@ -195,93 +193,92 @@ public:
     const Buffer loop_b = ramp(120, 1000);
 
     //==========================================================================
-    beginTest("Toggle pedal: re-recording over a playing loop plays the new take");
+    beginTest("Re-recording over a playing loop plays the new take");
     forEachBlockSize([&](int block_size)
     {
       ProcessorDriver d(block_size);
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(loop_a);
-      d.set(ParameterIDs::record, 0.0f);
+      d.tap(ParameterIDs::record);
       d.run(silence(450));
 
-      d.set(ParameterIDs::record, 1.0f);
-      check(d.engine().getState() == State::Recording, "third press starts the new take");
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Recording, "third tap starts the new take");
       d.run(loop_b);
-      d.set(ParameterIDs::record, 0.0f);
-      check(d.engine().getState() == State::Playing, "fourth press plays it");
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Playing, "fourth tap plays it");
       checkBuffers(d.run(silence(500)), cycle(loop_b, 500), "new take plays");
     });
 
     //==========================================================================
-    beginTest("Toggle pedal: re-recording after PLAY ended the first take");
+    beginTest("Re-recording after PLAY ended the first take");
     forEachBlockSize([&](int block_size)
     {
       ProcessorDriver d(block_size);
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(loop_a);
       d.tap(ParameterIDs::play);
       check(d.engine().getState() == State::Stopped, "PLAY ends the take");
-      check(d.get(ParameterIDs::record) < 0.5f, "the plugin echoes record = off back to the host");
 
-      // A host widget that follows that echo is off again, so its next press sends on
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Recording, "next RECORD tap starts a new take");
       d.run(loop_b);
-      d.set(ParameterIDs::record, 0.0f);
+      d.tap(ParameterIDs::record);
       checkBuffers(d.run(silence(500)), cycle(loop_b, 500), "new take plays");
     });
 
     //==========================================================================
-    knownBug("#8 one PLAY tap stops a loop that RECORD started playing", [&]
+    beginTest("One PLAY tap stops a loop that RECORD started playing");
+    forEachBlockSize([&](int block_size)
     {
-      // Starting playback echoes play = on to the host, so the next press of a
-      // momentary PLAY pedal sends a value the parameter already has and is lost
-      forEachBlockSize([&](int block_size)
-      {
-        ProcessorDriver d(block_size);
-        d.set(ParameterIDs::record, 1.0f);
-        d.run(loop_a);
-        d.set(ParameterIDs::record, 0.0f);
-        check(d.engine().getState() == State::Playing, "loop is playing");
+      ProcessorDriver d(block_size);
+      d.tap(ParameterIDs::record);
+      d.run(loop_a);
+      d.tap(ParameterIDs::record);
+      check(d.engine().getState() == State::Playing, "loop is playing");
 
-        d.tap(ParameterIDs::play);
-        check(d.engine().getState() == State::Stopped, "one PLAY tap stops it");
-      });
+      d.tap(ParameterIDs::play);
+      check(d.engine().getState() == State::Stopped, "one PLAY tap stops it");
     });
 
-    knownBug("#9 a momentary RECORD pedal keeps recording after it is released", [&]
+    //==========================================================================
+    beginTest("RECORD acts on the press: releasing the pedal keeps recording");
+    forEachBlockSize([&](int block_size)
     {
-      // The README says to map RECORD as momentary and that the release is
-      // ignored, but the processor treats both edges of `record` as presses
-      forEachBlockSize([&](int block_size)
-      {
-        ProcessorDriver d(block_size);
-        d.set(ParameterIDs::record, 1.0f);
-        d.run(slice(loop_a, 0, 32));   // the foot comes off a moment into the take
-        d.set(ParameterIDs::record, 0.0f);
-        check(d.engine().getState() == State::Recording, "still recording after the pedal is released");
-      });
+      ProcessorDriver d(block_size);
+      d.set(ParameterIDs::record, 1.0f);
+      d.run(slice(loop_a, 0, 32));   // the foot comes off a moment into the take
+      d.set(ParameterIDs::record, 0.0f);
+      check(d.engine().getState() == State::Recording, "still recording after the pedal is released");
     });
 
-    knownBug("#10 a pedal that keeps its own on/off state still works after PLAY ended a take", [&]
+    //==========================================================================
+    beginTest("State goes out on the *State outputs; the inputs are never echoed");
+    forEachBlockSize([&](int block_size)
     {
-      forEachBlockSize([&](int block_size)
-      {
-        ProcessorDriver d(block_size);
-        d.set(ParameterIDs::record, 1.0f);   // pedal now "on"
-        d.run(loop_a);
-        d.tap(ParameterIDs::play);           // take ended with PLAY; plugin echoes record = off
-        check(d.engine().getState() == State::Stopped, "PLAY ends the take");
+      ProcessorDriver d(block_size);
+      auto inputsAtRest = [&] { return d.get(ParameterIDs::record) < 0.5f && d.get(ParameterIDs::play) < 0.5f; };
 
-        d.set(ParameterIDs::record, 0.0f);   // next press: pedal sends "off", which the parameter already is
-        check(d.engine().getState() == State::Recording, "next RECORD press starts a new take");
-      });
+      d.tap(ParameterIDs::record);
+      check(d.get(ParameterIDs::recordState) > 0.5f, "recordState on while recording");
+      check(d.get(ParameterIDs::playState) < 0.5f, "playState off while recording");
+      d.run(loop_a);
+
+      d.tap(ParameterIDs::record);
+      check(d.get(ParameterIDs::recordState) < 0.5f, "recordState off once the take ends");
+      check(d.get(ParameterIDs::playState) > 0.5f, "playState on while playing");
+      check(inputsAtRest(), "record and play inputs stay at rest while playing");
+
+      d.tap(ParameterIDs::play);
+      check(d.get(ParameterIDs::playState) < 0.5f, "playState off when stopped");
+      check(inputsAtRest(), "record and play inputs stay at rest when stopped");
     });
 
     //==========================================================================
     beginTest("A press that lands while the plugin echoes state to the host is not lost");
     {
-      // Holds the message thread inside the echo of `record` back to its
-      // parameter, while a pedal press arrives from another thread
+      // Holds the message thread inside the echo of `recordState` to the
+      // host, while a pedal press arrives from another thread
       struct EchoGate : juce::AudioProcessorParameter::Listener
       {
         void parameterValueChanged(int, float) override
@@ -300,22 +297,22 @@ public:
 
       ProcessorDriver d(64);
       EchoGate gate;
-      auto* record = d.processor.getAPVTS().getParameter(ParameterIDs::record);
-      auto* play   = d.processor.getAPVTS().getParameter(ParameterIDs::play);
-      auto* slow   = d.processor.getAPVTS().getParameter(ParameterIDs::slow);
-      record->addListener(&gate);
+      auto* record_state = d.processor.getAPVTS().getParameter(ParameterIDs::recordState);
+      auto* play         = d.processor.getAPVTS().getParameter(ParameterIDs::play);
+      auto* slow         = d.processor.getAPVTS().getParameter(ParameterIDs::slow);
+      record_state->addListener(&gate);
 
-      d.set(ParameterIDs::record, 1.0f);
+      d.tap(ParameterIDs::record);
       d.run(loop_a);
 
-      // PLAY ends the take; the engine queues an echo of record = off
+      // PLAY ends the take; the engine queues an echo of recordState = off
       gate.armed = true;
       play->setValueNotifyingHost(1.0f);
       const bool echo_reached = gate.inside.wait(5000);
       slow->setValueNotifyingHost(1.0f);   // a pedal press during the echo
       gate.release.signal();
       flushMessageQueue();
-      record->removeListener(&gate);
+      record_state->removeListener(&gate);
 
       check(echo_reached, "test setup: the echo was intercepted");
       check(d.engine().getSpeedMode() == LooperEngine::SpeedMode::Half, "the press during the echo took effect");
