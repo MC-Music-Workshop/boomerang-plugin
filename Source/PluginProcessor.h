@@ -119,9 +119,6 @@ private:
     // Track previous button states to detect edges (press/release)
     std::atomic<bool> prevStackValue { false };
     
-    // Flag to prevent circular notifications when internal state changes update parameters
-    std::atomic<bool> updatingFromInternalState { false };
-    
     // Loop cycle pulse tracking (issue #51)
     // Tracks loop wrap state to pulse loopCycle parameter from processBlock
     std::atomic<bool> loopCyclePulseActive { false };

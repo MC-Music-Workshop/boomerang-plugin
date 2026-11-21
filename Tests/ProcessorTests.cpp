@@ -277,10 +277,11 @@ public:
       });
     });
 
-    knownBug("#11 a press that lands while the plugin echoes state to the host is not lost", [&]
+    //==========================================================================
+    beginTest("A press that lands while the plugin echoes state to the host is not lost");
     {
       // Holds the message thread inside the echo of `record` back to its
-      // parameter, which is when the processor ignores parameter changes
+      // parameter, while a pedal press arrives from another thread
       struct EchoGate : juce::AudioProcessorParameter::Listener
       {
         void parameterValueChanged(int, float) override
@@ -318,7 +319,7 @@ public:
 
       check(echo_reached, "test setup: the echo was intercepted");
       check(d.engine().getSpeedMode() == LooperEngine::SpeedMode::Half, "the press during the echo took effect");
-    });
+    }
   }
 };
 

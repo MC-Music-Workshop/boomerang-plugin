@@ -1,6 +1,12 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+// True while this thread writes the engine's state back to a parameter, so
+// parameterChanged() skips that write instead of treating it as a press.
+// Thread-local: a press arriving from another thread (MIDI, host automation)
+// during the write-back still counts.
+static thread_local bool updatingFromInternalState = false;
+
 //==============================================================================
 juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::createParameterLayout()
 {
@@ -142,7 +148,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
                 float normalizedValue = param->convertTo0to1(value);
                 
                 // Set flag to prevent parameterChanged from being called
-                updatingFromInternalState.store(true);
+                updatingFromInternalState = true;
                 
                 // Use gesture for proper host notification
                 param->beginChangeGesture();
@@ -150,7 +156,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
                 param->endChangeGesture();
                 
                 // Clear flag
-                updatingFromInternalState.store(false);
+                updatingFromInternalState = false;
             }
         });
     });
@@ -184,7 +190,7 @@ BoomerangAudioProcessor::~BoomerangAudioProcessor()
 void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     // Ignore parameter changes that originated from internal state changes
-    if (updatingFromInternalState.load())
+    if (updatingFromInternalState)
         return;
     
     // Safety check - ensure looperEngine exists
