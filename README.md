@@ -199,34 +199,50 @@ Routing happens before the looper, so the through signal and the recorded loop b
 
 # Gig Performer Integration
 
-The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are two kinds of parameter:
+The plugin exposes its controls as host parameters, so any host (Gig Performer, a DAW, etc.) can map widgets to them. There are four kinds of parameter:
 
-- **Input params** — `play`, `record`, `once`, `onceOff`, `stack`, `slow`, `thruMute`, `reverse`. These act on a press; the plugin runs the corresponding button logic when they change.
-- **Settings params** — `volume`, `feedback`, `inputSource`, `stackLatch`.
-- **State output params** (read-only) — `playState`, `onceState`, `stackState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget mapped to one always reflects the device's true state.
+- **Button inputs** — `record`, `play`, `once`, `onceOff`, `stack`, `slow`. Each press runs the button's logic. The plugin only reads these; it never changes them.
+- **Switch inputs** — `thruMute`, `reverse`. Each change flips the switch.
+- **Settings** — `volume`, `feedback`, `inputSource`, `stackLatch`.
+- **State outputs** (read-only) — `recordState`, `playState`, `onceState`, `stackState`, `slowMode`, `loopCycle`. The plugin pushes these out whenever its internal state changes, so a widget or LED mapped to one always shows the device's true state.
 
 ## Buttons should be Momentary
 
-The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (playing/stopped, once on/off). So configure the control widgets (`play`, `once`, `onceOff`, `record`, `stack`, `slow`) as **Momentary**:
+The physical Boomerang switches are momentary, and the plugin engine — not the widget — holds the latched state (recording, playing/stopped, once on/off). So configure the button widgets (`record`, `play`, `once`, `onceOff`, `stack`, `slow`) as **Momentary**:
 
-- Each press sends one edge, which the plugin treats as one button press and toggles its own state.
-- The release edge is ignored, so a press can't double-fire. (For example, pressing PLAY/STOP during recording stops recording without then starting playback.)
+- The press is the button press. The plugin acts on it and toggles its own state.
+- The release is ignored, so a press can't double-fire. (For example, pressing PLAY/STOP during recording stops recording without then starting playback.) STACK is the exception: in Momentary stack mode, the release ends the stack.
 
-A latching/toggle widget will mis-fire, because every release also counts as a press.
+A latching/toggle widget will mis-fire: it only sends a press every other time.
+
+## Switches are toggles
+
+THRU MUTE and DIRECTION are on/off switches, so map them to **latching/toggle** widgets. Each change flips the switch. The plugin echoes the switch's state back to its parameter, so a synced widget also follows clicks on the plugin's own panel.
 
 ## Showing state without breaking the button
 
 A momentary button springs back, so it can't display the latched state itself — exactly like the hardware, where a separate LED shows the state next to the momentary footswitch.
 
-**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output param (`playState` for PLAY/STOP, `onceState` for ONCE, `stackState` for STACK, `slowMode` for SLOW). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
+**How:** add a separate read-only display widget (e.g. a label) and map it to the matching state output (`recordState` for RECORD, `playState` for PLAY/STOP, `onceState` for ONCE, `stackState` for STACK, `slowMode` for SLOW). Size and position it over the LED area of the button widget so it reads as one control. The plugin keeps it in sync automatically.
 
 ## Bidirectional control support
 
 Devices that support bi-directional control messages can keep each other updated of their state.
 
-For example, I use MIDI Captain MAX to control a Boomerang plugin instance in Gig Performer (GP), could be any DAW. In Gig Performer I set each Boomerang parameter to a CC message from the MIDI Captain MAX, using the LEARN button in GP, and I set the Boomerang widgets in GP to SYNC. 
+For example, I use MIDI Captain MAX to control a Boomerang plugin instance in Gig Performer (GP), could be any DAW. In GP I map each Boomerang parameter to a CC from the MIDI Captain MAX, using the LEARN button.
 
-When I press a button on the Captain, the plugin in GP will update as usual. The cool part is if i click a widget in GP, it will also be reflected on the Captain, immediately. MIDI Captain MAX is enabled by default to listen to these messages on each buttons' configured message. 
+**How:**
+
+- **Buttons** (REC, PLAY, ONCE, ...): set the Captain button to **Momentary**, with **Listen CC** set to a second CC. In GP, give the button's state output widget (e.g. `recordState`) that second CC and set it to **Sync**. The button sends presses on its own CC, and its LED follows the plugin's state on the Listen CC.
+- **Switches** (THRU MUTE, DIRECTION): set the Captain button to **Toggle** and the GP widget to **Sync**, both on the same CC.
+
+When I press a button on the Captain, the plugin in GP updates as usual. If I click a widget in GP, the Captain's LEDs follow immediately.
+
+### Upgrading from v2
+
+v2 echoed the plugin's state back into the `record` and `play` inputs, so a RECORD widget could be a synced toggle. v3 reports that state on `recordState` and `playState` instead.
+
+**How:** if your RECORD widget or pedal is a toggle, switch it to Momentary and add a `recordState` LED as described above. A toggle RECORD widget now only starts or ends a take on every other press.
 
 # MIDI Configuration
 
