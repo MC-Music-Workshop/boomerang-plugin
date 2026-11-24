@@ -1,10 +1,10 @@
-# Boomerang
+# Boomerang+
 
-Boomerang is a live looping and time-based audio effect built for instant capture, stutter, overdub, and reverse playback.
+Boomerang+ is a live looping and time-based audio effect built for instant capture, stutter, overdub, and reverse playback.
 
 It allows you to capture loops of any length from any incoming audio stream, replay them immediately, and manipulate them in real time without stopping audio or committing to edits. Loops can be played once, repeated, overdubbed, reversed, or used as momentary stutters.
 
-Boomerang is designed for performance-oriented use on drums, guitars, synths, and full mixes where timing, immediacy, and control matter more than grid-locked precision.
+Boomerang+ is designed for performance-oriented use on drums, guitars, synths, and full mixes where timing, immediacy, and control matter more than grid-locked precision.
 
 ![theRang_large](https://github.com/mcascone/Boomerang-project/assets/8335079/24804087-7e4d-49fd-bff8-4ba93347222e)
 
@@ -40,13 +40,13 @@ After many false starts, plugin framework changes, and frustrating bugs, I've fi
 - half speed
 - through mute
 
-I haven't figured out the live-reverse special mode yet. And there are a few bugs that I need to fix before taking it out of beta. 
+## Used With Permission
 
-But it's ready.
+I've done this with love and reverence for the creators and keepers of the original device. 
 
-I've done this with love and reverence for the creators and keepers of the original device, and I have reached out to them for approval/partnership. 
+Boomerang+ Plugin is an independent third-party product developed by MC Music Workshop. It is not affiliated with, developed by, supported by, endorsed by, or sponsored by Boomerang of Georgia, LLC. BOOMERANG is a trademark of Boomerang of Georgia, LLC and is used with permission.
 
-However, this is me stating clearly that **this project has no official affiliation with Boomerang**.
+The official Boomerang hardware product site is https://www.boomeranglooper.com/. Go check it out!
 
 ### Design Approach
 
