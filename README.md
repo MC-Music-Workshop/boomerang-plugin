@@ -40,14 +40,6 @@ After many false starts, plugin framework changes, and frustrating bugs, I've fi
 - half speed
 - through mute
 
-## Used With Permission
-
-I've done this with love and reverence for the creators and keepers of the original device. 
-
-Boomerang+ Plugin is an independent third-party product developed by MC Music Workshop. It is not affiliated with, developed by, supported by, endorsed by, or sponsored by Boomerang of Georgia, LLC. BOOMERANG is a trademark of Boomerang of Georgia, LLC and is used with permission.
-
-The official Boomerang hardware product site is https://www.boomeranglooper.com/. Go check it out!
-
 ### Design Approach
 
 My intention is to use the manual very much as a requirements document; to code this plugin to behave as close to the physical original as I can, with my limited time and knowledge of the programming domain of this code.
@@ -79,6 +71,14 @@ Regarding the LEDs in the plugin, they're a bit extraneous, since the controls h
 This project is very much in flux and there are a lot of little bugs/features in motion. Check out [the Issues tab](https://github.com/mcascone/boomerang-plugin/issues) for where my head is at regarding bugs and features.
 
 You can also [view the project Kanban board](https://github.com/orgs/MC-Music-Workshop/projects/2) to get a broader sense of my future plans for this project.
+
+## Used With Permission
+
+I've done this with love and reverence for the creators and keepers of the original device. 
+
+Boomerang+ Plugin is an independent third-party product developed by MC Music Workshop. It is not affiliated with, developed by, supported by, endorsed by, or sponsored by Boomerang of Georgia, LLC. BOOMERANG is a trademark of Boomerang of Georgia, LLC and is used with permission.
+
+The official Boomerang hardware product site is https://www.boomeranglooper.com/. Go check it out!
 
 # The Controls
 
