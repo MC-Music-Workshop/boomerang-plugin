@@ -8,7 +8,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.2'
         - 'actions/upload-artifact@v7.0.2'
-        - 'hendrikmuhs/ccache-action@v1.2.25'
+        - 'hendrikmuhs/ccache-action@v1.2.26'
         - 'ilammy/msvc-dev-cmd@v1.13.0'
         - 'mozilla-actions/sccache-action@v0.0.11'
     '.github/workflows/homebrew.yml':
@@ -38,9 +38,9 @@ dependencies:
         commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         owner_id: 44036562
         repo_id: 192625955
-    'hendrikmuhs/ccache-action@v1.2.25':
-        ref: 'v1.2.25'
-        commit: 'sha1-dbeefd73e8e2ffc1bbc412570072735eb4db3607'
+    'hendrikmuhs/ccache-action@v1.2.26':
+        ref: 'v1.2.26'
+        commit: 'sha1-e91f31892a1d1b8c44424b1a94c0b7f52d337168'
         owner_id: 7126422
         repo_id: 319035161
     'ilammy/msvc-dev-cmd@v1.13.0':

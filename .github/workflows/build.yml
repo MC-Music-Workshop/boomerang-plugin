@@ -124,7 +124,7 @@ jobs:
       # Setup ccache for faster compilation (macOS/Linux)
       - name: Setup ccache
         if: runner.os != 'Windows'
-        uses: hendrikmuhs/ccache-action@v1.2.25
+        uses: hendrikmuhs/ccache-action@v1.2.26
         with:
           # Separate LTO cache so rare tag builds don't evict the branch-build objects
           key: ${{ runner.os }}-ccache${{ env.BOOMERANG_LTO == 'ON' && '-lto' || '' }}
