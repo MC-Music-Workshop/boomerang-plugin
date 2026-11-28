@@ -344,9 +344,10 @@ void LooperEngine::startRecording()
     activeSlot.recordPosition.store(0.0);
     currentState.store(LooperState::Recording);
     
-    // Notify host that record button is on
+    // Notify host on the recordState output, not the record input: echoing an
+    // input swallows the next momentary press (same as stackState, issue #71)
     if (parameterNotifyCallback)
-        parameterNotifyCallback(ParameterIDs::record, 1.0f);
+        parameterNotifyCallback(ParameterIDs::recordState, 1.0f);
 }
 
 void LooperEngine::stopRecording()
@@ -360,9 +361,9 @@ void LooperEngine::stopRecording()
     activeSlot.hasContent.store(finalLength > 0);
     currentState.store(LooperState::Stopped);
     
-    // Notify host that record button is off
+    // Notify host that recording stopped (recordState output, not record input)
     if (parameterNotifyCallback)
-        parameterNotifyCallback(ParameterIDs::record, 0.0f);
+        parameterNotifyCallback(ParameterIDs::recordState, 0.0f);
 }
 
 void LooperEngine::startPlayback()
@@ -377,13 +378,10 @@ void LooperEngine::startPlayback()
             : 0.0);
         currentState.store(LooperState::Playing);
 
-        // Notify host that play button is on
+        // Notify host on the dedicated read-only output for the PLAY/STOP widget
+        // (issue #66). Not on the play input: that would swallow the next momentary press
         if (parameterNotifyCallback)
-        {
-            parameterNotifyCallback(ParameterIDs::play, 1.0f);
-            // Dedicated read-only output for PLAY/STOP widget (issue #66)
             parameterNotifyCallback(ParameterIDs::playState, 1.0f);
-        }
     }
 }
 
@@ -399,13 +397,9 @@ void LooperEngine::stopPlayback()
     activeSlot.isPlaying.store(false);
     currentState.store(LooperState::Stopped);
 
-    // Notify host that play button is off
+    // Notify host that playback stopped (playState output, not play input - issue #66)
     if (parameterNotifyCallback)
-    {
-        parameterNotifyCallback(ParameterIDs::play, 0.0f);
-        // Dedicated read-only output for PLAY/STOP widget (issue #66)
         parameterNotifyCallback(ParameterIDs::playState, 0.0f);
-    }
 }
 
 void LooperEngine::startOverdubbing()

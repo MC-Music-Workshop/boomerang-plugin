@@ -1,6 +1,12 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+// True while this thread writes the engine's state back to a parameter, so
+// parameterChanged() skips that write instead of treating it as a press.
+// Thread-local: a press arriving from another thread (MIDI, host automation)
+// during the write-back still counts.
+static thread_local bool updatingFromInternalState = false;
+
 //==============================================================================
 juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::createParameterLayout()
 {
@@ -109,6 +115,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout BoomerangAudioProcessor::cre
         "Slow",
         false));  // momentary button
 
+    // Record state indicator - on while recording (for external REC LED).
+    // Version hint 3: added after the hint-2 parameters (see Input Source)
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID(ParameterIDs::recordState, 3),
+        "Record State",
+        false));  // read-only state indicator
+
     return layout;
 }
 
@@ -142,7 +155,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
                 float normalizedValue = param->convertTo0to1(value);
                 
                 // Set flag to prevent parameterChanged from being called
-                updatingFromInternalState.store(true);
+                updatingFromInternalState = true;
                 
                 // Use gesture for proper host notification
                 param->beginChangeGesture();
@@ -150,7 +163,7 @@ BoomerangAudioProcessor::BoomerangAudioProcessor()
                 param->endChangeGesture();
                 
                 // Clear flag
-                updatingFromInternalState.store(false);
+                updatingFromInternalState = false;
             }
         });
     });
@@ -184,7 +197,7 @@ BoomerangAudioProcessor::~BoomerangAudioProcessor()
 void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     // Ignore parameter changes that originated from internal state changes
-    if (updatingFromInternalState.load())
+    if (updatingFromInternalState)
         return;
     
     // Safety check - ensure looperEngine exists
@@ -203,17 +216,18 @@ void BoomerangAudioProcessor::parameterChanged(const juce::String& parameterID, 
     {
         looperEngine->onReverseButtonPressed();
     }
-    // Action buttons - trigger on every toggle edge since GP uses toggle widgets
-    // The updatingFromInternalState flag prevents circular calls
+    // Action buttons are momentary: act on the press edge only. Acting on both
+    // edges double-fires: e.g. PLAY/STOP during record would stop recording on
+    // press, then start playback on release (issue #66). The engine never echoes
+    // to these inputs (state goes to the *State outputs), so every press is a
+    // real 0 -> 1 change.
     else if (parameterID == ParameterIDs::record)
     {
-        looperEngine->onRecordButtonPressed();
+        if (buttonPressed)
+            looperEngine->onRecordButtonPressed();
     }
     else if (parameterID == ParameterIDs::play)
     {
-        // Act on the press edge only (momentary widget). Acting on both edges
-        // double-fires: e.g. PLAY/STOP during record would stop recording on
-        // press, then start playback on release (issue #66).
         if (buttonPressed)
             looperEngine->onPlayButtonPressed();
     }
@@ -526,6 +540,8 @@ void BoomerangAudioProcessor::setStateInformation (const void* data, int sizeInB
         onceParam->setValueNotifyingHost(0.0f);  // Once off
     if (auto* cycleParam = apvts.getParameter(ParameterIDs::loopCycle))
         cycleParam->setValueNotifyingHost(0.0f);  // No pulse
+    if (auto* recordParam = apvts.getParameter(ParameterIDs::recordState))
+        recordParam->setValueNotifyingHost(0.0f);  // Not recording
     
     // Reset engine to default state (Normal speed, Once off, etc.)
     looperEngine->resetTransientState();

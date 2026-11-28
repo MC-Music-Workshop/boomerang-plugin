@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Boomerang VERSION 2.0.0)
+project(Boomerang VERSION 3.0.0)
 
 # ==============================================================================
 # Version from Git (Single Source of Truth)

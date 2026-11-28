@@ -26,6 +26,7 @@ namespace ParameterIDs
     const juce::String stackState  = "stackState";  // On while stacking (for external STACK LED, issue #71)
     const juce::String onceOff     = "onceOff";     // Cancels Once mode, loop keeps playing (issue #62)
     const juce::String slow        = "slow";        // Toggles full/half speed, apart from STACK (issue #78)
+    const juce::String recordState = "recordState"; // On while recording (for external REC LED)
 }
 
 // Plugin state properties that aren't host parameters (saved with the session)
@@ -118,9 +119,6 @@ private:
     
     // Track previous button states to detect edges (press/release)
     std::atomic<bool> prevStackValue { false };
-    
-    // Flag to prevent circular notifications when internal state changes update parameters
-    std::atomic<bool> updatingFromInternalState { false };
     
     // Loop cycle pulse tracking (issue #51)
     // Tracks loop wrap state to pulse loopCycle parameter from processBlock
